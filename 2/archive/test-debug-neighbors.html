@@ -155,23 +155,6 @@
                     log(`  [${i}] (${n.x},${n.y}): ${tile.type}, walkable=${tile.isWalkable}, blocked=${tile.isBlocked}`, 'info');
                 }
                 
-                // extra check: ensure we didn't include adjacent building tiles if home is itself a building
-                log(`\n--- Building adjacency check ---`, 'warning');
-                const dirs = [
-                    { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
-                    { dx: 0, dy: -1 }, { dx: 0, dy: 1 }
-                ];
-                for (const d of dirs) {
-                    const bx = home.x + d.dx;
-                    const by = home.y + d.dy;
-                    if (board.isValidPosition(bx, by)) {
-                        const bt = board.getTile(bx, by);
-                        if (bt && bt.type === TileClass.TYPES.BUILDING) {
-                            log(`  adjacent building at (${bx},${by}) should NOT be in neighbors`, 'info');
-                        }
-                    }
-                }
-                
                 // Check each direction manually
                 log(`\n--- Manual direction check from HOME (${home.x},${home.y}) ---`, 'warning');
                 const directions = [

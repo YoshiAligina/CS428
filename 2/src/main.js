@@ -555,56 +555,14 @@ class Game {
         }
 
         const targetTile = this.board.getTile(targetX, targetY);
-        const isIntersection = targetTile && targetTile.type === Tile.TYPES.INTERSECTION;
         if (!targetTile || targetTile.isBlocked) {
             this.setMovementDebug(`Blocked: tile unavailable at (${targetX}, ${targetY})`);
             return false;
         }
 
-        // --- new walkability enforcement ---------------------------------
-        const currentTile = this.board.getTile(player.currentLocation.x, player.currentLocation.y);
-        const currentIsRoad = currentTile &&
-            (currentTile.type === Tile.TYPES.ROAD || currentTile.type === Tile.TYPES.INTERSECTION);
-
-        // intersections are treated as always walkable even if the flag is wrong
-        if (!isIntersection && !targetTile.isWalkable) {
-            this.setMovementDebug(`Blocked: target tile is non-walkable type ${targetTile.type}`);
-            return false;
-        }
-
-        const buildingTypes = [
-            Tile.TYPES.HOME,
-            Tile.TYPES.OFFICE,
-            Tile.TYPES.CAFE,
-            Tile.TYPES.LANDMARK,
-            Tile.TYPES.HOSPITAL,
-            Tile.TYPES.JAIL,
-        ];
-        const isTargetBuilding = buildingTypes.includes(targetTile.type);
-
-        const nextDest = player.getNextDestination ? player.getNextDestination() : null;
-        const isDestination = nextDest && nextDest.x === targetX && nextDest.y === targetY;
-
-        if (isTargetBuilding) {
-            // manual movement: allow entry whenever approaching from a road/intersection
-            // regardless of destination.  This makes buildings reachable by player
-            // navigation while still preventing direct building→building moves.
-            if (!currentIsRoad) {
-                this.setMovementDebug('Blocked: must approach building from road or intersection');
-                return false;
-            }
-        }
-
-        // ------------------------------------------------------------------
-
         player.currentLocation = { x: targetX, y: targetY };
         player.plannedPath = [];
         player.pathIndex = 0;
-
-        // debug note: report if stepping onto an intersection
-        if (isIntersection) {
-            this.setMovementDebug(`Moved onto intersection at (${targetX}, ${targetY}) | Turn ${this.turnManager.currentTurn}`);
-        }
         player.movementHistory.push({
             turn: player.turnsElapsed,
             position: { ...player.currentLocation },
