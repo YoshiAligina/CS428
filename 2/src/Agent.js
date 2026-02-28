@@ -385,6 +385,8 @@ class Agent {
             return false;
         }
 
+        const currentTile = board.getTile(this.currentLocation.x, this.currentLocation.y);
+
         let arrived = false;
         let taskCompleted = false;
 
@@ -408,10 +410,8 @@ class Agent {
             this.recalculatePath(board);
         }
 
-        // Check for hospital visit when injured
-        if (this.mustVisitHospital && this.hospitalTaskLocation &&
-            this.currentLocation.x === this.hospitalTaskLocation.x &&
-            this.currentLocation.y === this.hospitalTaskLocation.y) {
+        // Check for hospital visit when injured (any hospital tile is valid)
+        if (this.mustVisitHospital && currentTile && currentTile.type === Tile.TYPES.HOSPITAL) {
             this.visitHospital();
             this.healingTurnsRemaining = 1;
             arrived = true;

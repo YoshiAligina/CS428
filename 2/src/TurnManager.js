@@ -294,7 +294,9 @@ class TurnManager {
                     const injured = agent.injure(hospitalLocation);
                     if (injured) {
                         console.log(`Agent ${agent.id} was injured! Must visit hospital.`);
-                        agent.calculatePath(this.board);
+                        if (!agent.isPlayerControlled) {
+                            agent.calculatePath(this.board);
+                        }
                     }
                 }
             }
@@ -315,7 +317,9 @@ class TurnManager {
                     const committed = agent.commitCrime(jailLocation);
                     if (committed) {
                         console.log(`Agent ${agent.id} committed a crime! Must serve jail time.`);
-                        agent.calculatePath(this.board);
+                        if (!agent.isPlayerControlled) {
+                            agent.calculatePath(this.board);
+                        }
                     }
                 }
             }

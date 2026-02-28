@@ -422,9 +422,9 @@ class UIController {
         }
 
         // Always show job as final task
-        const allTasksComplete = agent.tasksQueue.every(t => t.completed);
-        const jobCheckbox = allTasksComplete ? '☑' : '☐';
-        const jobClasses = allTasksComplete ? 'completed' : 'pending';
+        const reachedOffice = agent.arrivedAtJob === true || agent.status === 'ARRIVED';
+        const jobCheckbox = reachedOffice ? '☑' : '☐';
+        const jobClasses = reachedOffice ? 'completed' : 'pending';
         checklist += `<li class="task-item ${jobClasses}">${jobCheckbox} Reach office</li>`;
 
         checklist += '</ul></div>';
