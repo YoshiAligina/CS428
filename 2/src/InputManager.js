@@ -161,8 +161,8 @@ class InputManager {
         // Get all tile meshes as an array
         const tileMeshes = Array.from(this.renderer.tileMeshes.values());
 
-        // Find intersected objects
-        const intersects = this.raycaster.intersectObjects(tileMeshes, false);
+        // Find intersected objects (recursive=true so child meshes in Groups are hittable)
+        const intersects = this.raycaster.intersectObjects(tileMeshes, true);
 
         if (intersects.length > 0) {
             // Get the closest intersected tile
@@ -225,8 +225,8 @@ class InputManager {
         // Get all tile meshes as an array
         const tileMeshes = Array.from(this.renderer.tileMeshes.values());
 
-        // Find intersected objects
-        const intersects = this.raycaster.intersectObjects(tileMeshes, false);
+        // Find intersected objects (recursive=true so child meshes in Groups are hittable)
+        const intersects = this.raycaster.intersectObjects(tileMeshes, true);
 
         if (intersects.length > 0) {
             // Get the closest intersected tile
@@ -255,16 +255,23 @@ class InputManager {
      * @returns {{x: number, y: number}|null} Tile coordinates
      */
     findTileFromMesh(mesh) {
-        // Search through tileMeshes map to find matching mesh
-        for (let [key, tileMesh] of this.renderer.tileMeshes) {
-            if (tileMesh === mesh) {
-                const coords = key.split(',');
-                return {
-                    x: parseInt(coords[0]),
-                    y: parseInt(coords[1]),
-                };
+        let current = mesh;
+
+        while (current) {
+            // Search through tileMeshes map to find matching root/parent mesh
+            for (let [key, tileMesh] of this.renderer.tileMeshes) {
+                if (tileMesh === current) {
+                    const coords = key.split(',');
+                    return {
+                        x: parseInt(coords[0]),
+                        y: parseInt(coords[1]),
+                    };
+                }
             }
+
+            current = current.parent || null;
         }
+
         return null;
     }
 
