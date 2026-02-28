@@ -274,8 +274,14 @@ class Renderer {
 
                 // Create mesh based on tile type
                 if (tile.type === 'BUILDING') {
-                    // Procedural buildings with varied types
+                    // Procedural buildings with explicit categories
                     mesh = this.createBuildingMesh(x, y, tileSize);
+
+                } else if (tile.type === 'HOME') {
+                    mesh = this.createBuildingMesh(x, y, tileSize, 'house');
+
+                } else if (tile.type === 'OFFICE') {
+                    mesh = this.createBuildingMesh(x, y, tileSize, 'office');
 
                 } else if (tile.type === 'INTERSECTION') {
                     // Intersection: lighter gray plane
@@ -381,16 +387,16 @@ class Renderer {
      */
     getBuildingType(x, y) {
         const n = this.noise2D(x, y, 13.37);
-        if (n < 0.45) return 'residential';
-        if (n < 0.8) return 'commercial';
-        return 'industrial';
+        if (n < 0.45) return 'house';
+        if (n < 0.8) return 'office';
+        return 'factory';
     }
 
     /**
      * Create procedural building mesh
      */
-    createBuildingMesh(x, y, tileSize) {
-        const type = this.getBuildingType(x, y);
+    createBuildingMesh(x, y, tileSize, forcedCategory = null) {
+        const type = forcedCategory || this.getBuildingType(x, y);
         const heightNoise = this.noise2D(x, y, 7.77);
         const variation = this.noise2D(x, y, 91.31);
 
@@ -399,7 +405,7 @@ class Renderer {
         let metalness = 0.2;
         let roughness = 0.8;
 
-        if (type === 'residential') {
+        if (type === 'house') {
             baseColor = 0xb89c8c;
             const clusterCount = 2 + Math.floor(variation * 2);
             for (let i = 0; i < clusterCount; i++) {
@@ -420,7 +426,7 @@ class Renderer {
                 block.receiveShadow = true;
                 group.add(block);
             }
-        } else if (type === 'commercial') {
+        } else if (type === 'office') {
             baseColor = 0x6fb3ff;
             metalness = 0.9;
             roughness = 0.25;

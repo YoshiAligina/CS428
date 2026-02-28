@@ -237,34 +237,86 @@ class Board {
         }
 
         // Shuffle road tiles to randomize placement
-        const shuffled = Utils.deepClone(roadArray)
+        const shuffledRoad = Utils.deepClone(roadArray)
             .map(key => {
                 const [x, y] = key.split(',').map(Number);
                 return { x, y, key };
             })
             .sort(() => Math.random() - 0.5);
 
-        let locationIndex = 0;
+        // Building candidates for HOME/OFFICE starts (must touch road for path connectivity)
+        const shuffledBuildingStarts = [];
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                const tile = this.getTile(x, y);
+                if (!tile || tile.type !== Tile.TYPES.BUILDING) {
+                    continue;
+                }
 
-        // Place 4 HOMES (for 4 agents)
-        for (let i = 0; i < 4 && locationIndex < shuffled.length; i++) {
-            const pos = shuffled[locationIndex++];
+                if (this.getAdjacentRoadCount(x, y) > 0) {
+                    shuffledBuildingStarts.push({ x, y, key: `${x},${y}` });
+                }
+            }
+        }
+        shuffledBuildingStarts.sort(() => Math.random() - 0.5);
+
+        let roadIndex = 0;
+
+        const usedKeys = new Set();
+
+        const takeNextRoadLocation = () => {
+            while (roadIndex < shuffledRoad.length) {
+                const pos = shuffledRoad[roadIndex++];
+                if (!usedKeys.has(pos.key)) {
+                    usedKeys.add(pos.key);
+                    return pos;
+                }
+            }
+            return null;
+        };
+
+        const takeNextBuildingStart = () => {
+            while (shuffledBuildingStarts.length > 0) {
+                const pos = shuffledBuildingStarts.pop();
+                if (!usedKeys.has(pos.key)) {
+                    usedKeys.add(pos.key);
+                    return pos;
+                }
+            }
+            return null;
+        };
+
+        // Place 4 HOMES (for 4 agents) - prefer building starts
+        for (let i = 0; i < 4; i++) {
+            const pos = takeNextBuildingStart() || takeNextRoadLocation();
+            if (!pos) {
+                break;
+            }
+
             this.setSpecialTile(pos.x, pos.y, Tile.TYPES.HOME);
             this.specialLocations.homes.push(pos);
+            this.roadTiles.add(pos.key);
         }
 
-        // Place 4 OFFICES (for 4 agents)
-        for (let i = 0; i < 4 && locationIndex < shuffled.length; i++) {
-            const pos = shuffled[locationIndex++];
+        // Place 4 OFFICES (for 4 agents) - prefer building starts
+        for (let i = 0; i < 4; i++) {
+            const pos = takeNextBuildingStart() || takeNextRoadLocation();
+            if (!pos) {
+                break;
+            }
+
             this.setSpecialTile(pos.x, pos.y, Tile.TYPES.OFFICE);
             this.specialLocations.offices.push(pos);
+            this.roadTiles.add(pos.key);
         }
 
         // Place 1 CAFE
-        if (locationIndex < shuffled.length) {
-            const pos = shuffled[locationIndex++];
+        {
+            const pos = takeNextRoadLocation();
+            if (pos) {
             this.setSpecialTile(pos.x, pos.y, Tile.TYPES.CAFE);
             this.specialLocations.cafes.push(pos);
+            }
         }
 
         // Place 1-2 HOSPITALS
@@ -272,17 +324,23 @@ class Board {
             ? Utils.randomInt(1, 2)
             : (Math.random() < 0.5 ? 1 : 2);
 
-        for (let i = 0; i < hospitalCount && locationIndex < shuffled.length; i++) {
-            const pos = shuffled[locationIndex++];
+        for (let i = 0; i < hospitalCount; i++) {
+            const pos = takeNextRoadLocation();
+            if (!pos) {
+                break;
+            }
+
             this.setSpecialTile(pos.x, pos.y, Tile.TYPES.HOSPITAL);
             this.specialLocations.hospitals.push(pos);
         }
 
         // Place 1 JAIL (before landmarks)
-        if (locationIndex < shuffled.length) {
-            const pos = shuffled[locationIndex++];
+        {
+            const pos = takeNextRoadLocation();
+            if (pos) {
             this.setSpecialTile(pos.x, pos.y, Tile.TYPES.JAIL);
             this.specialLocations.jails.push(pos);
+            }
         }
 
         // Place 5-7 LANDMARKS (varied types with bonuses)
@@ -316,8 +374,12 @@ class Board {
         const majorTypes = ['PARK', 'MUSEUM', 'PLAZA', 'TEMPLE', 'HISTORIC_BUILDING'];
         const usedTypes = new Set();
 
-        for (let i = 0; i < landmarkCount && locationIndex < shuffled.length; i++) {
-            const pos = shuffled[locationIndex++];
+        for (let i = 0; i < landmarkCount; i++) {
+            const pos = takeNextRoadLocation();
+            if (!pos) {
+                break;
+            }
+
             const tile = this.getTile(pos.x, pos.y);
 
             // Ensure variety: pick from shuffled configs
