@@ -89,14 +89,6 @@ class Renderer {
             y: board.height / 2,
         };
 
-        // Compass UI references
-        this.compassDialElement = (typeof document !== 'undefined')
-            ? document.getElementById('compassDial')
-            : null;
-        this.compassReadingElement = (typeof document !== 'undefined')
-            ? document.getElementById('compassReading')
-            : null;
-
         // Initialize renderer
         this.init();
 
@@ -1965,28 +1957,6 @@ class Renderer {
     }
 
     /**
-     * Update compass rotation and reading based on camera orientation
-     */
-    updateCompass() {
-        if (!this.camera || !this.compassDialElement) {
-            return;
-        }
-
-        const toCenterX = this.boardCenter.x - this.camera.position.x;
-        const toCenterZ = this.boardCenter.y - this.camera.position.z;
-        const bearingRadians = Math.atan2(toCenterX, -toCenterZ);
-        const bearingDegrees = (bearingRadians * 180 / Math.PI + 360) % 360;
-
-        this.compassDialElement.style.transform = `rotate(${-bearingDegrees}deg)`;
-
-        if (this.compassReadingElement) {
-            const directionNames = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-            const directionIndex = Math.round(bearingDegrees / 45) % 8;
-            this.compassReadingElement.textContent = `Up: ${directionNames[directionIndex]}`;
-        }
-    }
-
-    /**
      * Animate agent movement from one position to another
      * @param {string} agentId - Agent identifier
      * @param {THREE.Vector3} from - Starting position
@@ -2448,9 +2418,6 @@ class Renderer {
         
         // Update camera animation
         this.updateCameraAnimation();
-
-        // Update map compass orientation
-        this.updateCompass();
         
         // Update agent animations
         this.updateAgentAnimations();
