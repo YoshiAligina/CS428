@@ -432,6 +432,36 @@ class Board {
                 }
             }
         }
+
+        // --- ensure required special locations exist in case the randomized
+        // placements skipped them due to a shortage of road tiles ---
+        const ensureType = (key, type) => {
+            if (!this.specialLocations[key] || this.specialLocations[key].length === 0) {
+                // try to find an unused road tile first
+                let tile = this.getRandomRoadTile(true); // exclude specials
+                if (!tile) {
+                    // fallback: convert a random grid position to road
+                    const rx = Utils.randomInt(0, this.width - 1);
+                    const ry = Utils.randomInt(0, this.height - 1);
+                    tile = this.getTile(rx, ry);
+                    if (tile) {
+                        this.setRoadTile(rx, ry);
+                    }
+                }
+                if (tile) {
+                    console.warn(`Board.placeSpecialLocations added missing ${type} at (${tile.x},${tile.y})`);
+                    this.setSpecialTile(tile.x, tile.y, type);
+                    this.specialLocations[key].push({ x: tile.x, y: tile.y });
+                }
+            }
+        };
+
+        ensureType('homes', Tile.TYPES.HOME);
+        ensureType('offices', Tile.TYPES.OFFICE);
+        ensureType('cafes', Tile.TYPES.CAFE);
+        ensureType('hospitals', Tile.TYPES.HOSPITAL);
+        ensureType('jails', Tile.TYPES.JAIL);
+        ensureType('landmarks', Tile.TYPES.LANDMARK);
     }
 
     /**
