@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Traffic Board Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Main game container -->
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Top bar -->
+        <div id="topBar">
+            <div id="turnDisplay">Turn: <span id="turnNumber">0</span> / <span id="maxTurns">50</span></div>
+            <div id="specialAgentPanel">
+                <div id="specialAgentStatus">⚡ Special Agent: <span id="specialAgentName">None</span></div>
+                <div id="specialAgentCountdown">Special agent rotates in: <span id="specialAgentCountdownValue">2</span> turns</div>
+            </div>
+            <div id="gameStatus" class="status-ready">Status: <span id="statusText">Ready</span></div>
+        </div>
+        
+    <!-- Side panel (Agent List + Enhanced Info) -->
+    <div id="sidePanel">
+        <h3>Agents & Status</h3>
+        <div id="agentList">
+            <!-- Agents will be populated dynamically -->
+        </div>
+        
+        <!-- Task Checklist -->
+        <div id="taskChecklistPanel" class="panel">
+            <h4>📋 Task Checklist</h4>
+            <div id="taskChecklist">
+                <!-- Tasks will be populated dynamically -->
+            </div>
+        </div>
+        
+        <!-- Statistics Panel -->
+        <div id="statisticsPanel" class="panel">
+            <h4>📊 Game Statistics</h4>
+            <div class="stat-row">
+                <span class="stat-label">Total Tasks Completed:</span>
+                <span id="statTotalTasks" class="stat-value">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Photo Delays:</span>
+                <span id="statPhotoDelays" class="stat-value">0 turns</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Congestion Incidents:</span>
+                <span id="statCongestionIncidents" class="stat-value">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Special Abilities Used:</span>
+                <span id="statAbilitiesUsed" class="stat-value">0</span>
+            </div>
+        </div>
+    </div>
+        
+        <!-- Bottom action panel -->
+        <div id="actionPanel">
+            <!-- Turn Timeline -->
+            <div id="turnTimeline" class="timeline">
+                <div class="timeline-label">Turn Progress</div>
+                <div class="timeline-bar">
+                    <div id="timelineProgress" class="timeline-progress"></div>
+                </div>
+                <div class="timeline-text">
+                    <span id="timelineElapsed">0</span> / <span id="timelineTotal">50</span> turns
+                </div>
+            </div>
+            
+            <button id="endTurnBtn" class="primary-btn">End Turn</button>
+            <button id="autoplayBtn" class="control-btn">
+                <span class="icon">▶️</span>
+                <span class="label">Start</span>
+            </button>
+            <div class="speed-control">
+                <label for="speedSlider">Speed:</label>
+                <input type="range" id="speedSlider" min="1" max="10" value="5" class="speed-slider">
+                <span id="speedDisplay">5x</span>
+            </div>
+            <button id="placeRoadblockBtn" class="toggle-btn">
+                <span class="icon">🚧</span>
+                Place Roadblock
+            </button>
+        </div>
+        
+        <!-- Map Legend (bottom left) -->
+        <div id="mapLegend" class="legend-panel">
+            <div class="legend-header">
+                <span>🗺️ Map Legend</span>
+                <button id="legendMinimizeBtn" class="minimize-btn" title="Minimize/Expand legend">−</button>
+            </div>
+            <div class="legend-content" id="legendContent">
+                <div class="legend-category">
+                    <div class="legend-category-title">Roads</div>
+                    <div class="legend-item"><span class="legend-icon road">░</span> Regular Road</div>
+                    <div class="legend-item"><span class="legend-icon congestion">⚠</span> Congested</div>
+                    <div class="legend-item"><span class="legend-icon blocked">🚫</span> Blocked</div>
+                </div>
+                <div class="legend-category">
+                    <div class="legend-category-title">Services</div>
+                    <div class="legend-item"><span class="legend-icon service">☕</span> CAFE</div>
+                    <div class="legend-item"><span class="legend-icon service">⛽</span> Gas Station</div>
+                    <div class="legend-item"><span class="legend-icon service">🏥</span> Hospital</div>
+                    <div class="legend-item"><span class="legend-icon service">⚖️</span> Jail</div>
+                    <div class="legend-item"><span class="legend-icon service">📮</span> Postal Office</div>
+                </div>
+                <div class="legend-category">
+                    <div class="legend-category-title">Landmarks</div>
+                    <div class="legend-item"><span class="legend-icon landmark">🎨</span> Cultural Site</div>
+                    <div class="legend-item"><span class="legend-icon landmark">🏛️</span> Historic Building</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tile inspector (hidden by default) -->
+        <div id="tileInspector" class="hidden">
+            <div class="inspector-header">
+                <h3>Tile Inspector</h3>
+                <button id="closeTileInspector" class="close-btn">×</button>
+            </div>
+            <div class="inspector-content">
+                <div class="inspector-row">
+                    <span class="label">Position:</span>
+                    <span id="tilePosition">-</span>
+                </div>
+                <div class="inspector-row">
+                    <span class="label">Type:</span>
+                    <span id="tileType">-</span>
+                </div>
+                <div class="inspector-row">
+                    <span class="label">Congestion:</span>
+                    <span id="tileCongestion" class="congestion-level">0 / 5</span>
+                </div>
+                <div class="inspector-row">
+                    <span class="label">Blocked:</span>
+                    <span id="tileBlocked">No</span>
+                </div>
+                <div class="inspector-row">
+                    <span class="label">Agents:</span>
+                    <div id="tileAgents">None</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="gameOverOverlay" class="game-over-overlay hidden">
+            <div class="game-over-card">
+                <div id="gameOverTitle" class="game-over-title">Game Over</div>
+                <div class="game-over-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Total Turns Elapsed</span>
+                        <span id="gameOverTurns" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Agents Succeeded</span>
+                        <span id="gameOverSuccess" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Agents Failed</span>
+                        <span id="gameOverFail" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Average Congestion</span>
+                        <span id="gameOverCongestion" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Tasks Completed</span>
+                        <span id="gameOverTasks" class="stat-value">0</span>
+                    </div>
+                </div>
+                <button id="playAgainBtn" class="play-again-btn">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Game source files -->
+    <script src="src/Constants.js"></script>
+    <script src="src/Utils.js"></script>
+    <script src="src/Tile.js"></script>
+    <script src="src/Board.js"></script>
+    <script src="src/Agent.js"></script>
+    <script src="src/Renderer.js"></script>
+    <script src="src/InputManager.js"></script>
+    <script src="src/TurnManager.js"></script>
+    <script src="src/UIController.js"></script>
+    <script src="src/DebugMode.js"></script>
+    <script src="src/main.js"></script>
+</body>
+</html>
+

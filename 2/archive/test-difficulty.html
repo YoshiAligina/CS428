@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Difficulty Test - 10 Game Runs</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            margin: 0 0 30px 0;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .success-rate {
+            font-size: 48px;
+        }
+        
+        .results {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .game-result {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        
+        .game-result.excellent {
+            border-left-color: #51cf66;
+        }
+        
+        .game-result.good {
+            border-left-color: #ffd43b;
+        }
+        
+        .game-result.poor {
+            border-left-color: #ff6b6b;
+        }
+        
+        .game-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .game-details {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .progress {
+            width: 100%;
+            height: 30px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #51cf66 0%, #4da6ff 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Difficulty Test Suite</h1>
+        
+        <div class="controls">
+            <button id="startBtn" class="btn">Run 10 Game Tests</button>
+        </div>
+        
+        <div class="progress">
+            <div id="progressBar" class="progress-bar" style="width: 0%">0/10</div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Success Rate</div>
+                <div class="stat-value success-rate" id="successRate">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Agents Completed</div>
+                <div class="stat-value" id="completedCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Agents Failed</div>
+                <div class="stat-value" id="failedCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Average Turns</div>
+                <div class="stat-value" id="avgTurns">0</div>
+            </div>
+        </div>
+        
+        <div class="results" id="results"></div>
+    </div>
+
+    <!-- Three.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Game source files -->
+    <script src="src/Constants.js"></script>
+    <script src="src/Utils.js"></script>
+    <script src="src/Tile.js"></script>
+    <script src="src/Board.js"></script>
+    <script src="src/Agent.js"></script>
+    <script src="src/TurnManager.js"></script>
+    
+    <script>
+        // Test runner
+        class DifficultyTester {
+            constructor() {
+                this.results = [];
+                this.running = false;
+            }
+
+            async runTests(numTests = 10) {
+                this.results = [];
+                this.running = true;
+                document.getElementById('startBtn').disabled = true;
+
+                for (let i = 0; i < numTests; i++) {
+                    console.log(`\n========== GAME ${i + 1}/${numTests} ==========`);
+                    const result = await this.runSingleGame();
+                    this.results.push(result);
+                    this.updateUI(i + 1, numTests);
+                    await this.delay(100);
+                }
+
+                this.running = false;
+                document.getElementById('startBtn').disabled = false;
+                this.printFinalStats();
+            }
+
+            async runSingleGame() {
+                const constants = window.GAME_CONSTANTS || { GRID_SIZE: 16, TURN_LIMIT: 18 };
+
+                // Create board
+                const board = new Board(constants.GRID_SIZE, constants.GRID_SIZE);
+                board.generate();
+
+                // Get home and office locations
+                const homes = board.specialLocations.homes;
+                const offices = board.specialLocations.offices;
+
+                if (homes.length < 4 || offices.length < 4) {
+                    console.error('Not enough special locations!');
+                    return null;
+                }
+
+                // Create agents
+                const agents = [];
+                const colors = ['#ff6b6b', '#51cf66', '#4da6ff', '#ffd43b'];
+                
+                for (let i = 0; i < 4; i++) {
+                    const home = homes[i];
+                    const office = offices[i];
+                    const agent = new Agent(
+                        `agent_${i}`,
+                        { x: home.x, y: home.y },
+                        { x: office.x, y: office.y },
+                        colors[i],
+                        board
+                    );
+                    agents.push(agent);
+                }
+
+                // Create turn manager
+                const turnManager = new TurnManager(agents, board, { maxTurns: constants.TURN_LIMIT });
+
+                // Start game loop
+                turnManager.start();
+
+                // Run game to completion
+                let turn = 0;
+                while (turn < constants.TURN_LIMIT && !this.allAgentsComplete(agents)) {
+                    turnManager.executeTurn();
+                    turn++;
+                }
+
+                // Collect results
+                const completed = agents.filter(a => a.status === 'ARRIVED').length;
+                const failed = agents.filter(a => a.status === 'FAILED').length;
+                const active = agents.filter(a => a.status === 'ACTIVE').length;
+
+                return {
+                    turn,
+                    completed,
+                    failed,
+                    active,
+                    agents: agents.map(a => ({
+                        id: a.id,
+                        status: a.status,
+                        turnsElapsed: a.turnsElapsed
+                    }))
+                };
+            }
+
+            allAgentsComplete(agents) {
+                return agents.every(a => a.status !== 'ACTIVE');
+            }
+
+            updateUI(current, total) {
+                // Update progress bar
+                const progress = (current / total) * 100;
+                document.getElementById('progressBar').style.width = `${progress}%`;
+                document.getElementById('progressBar').textContent = `${current}/${total}`;
+
+                // Calculate stats
+                const totalAgents = this.results.length * 4;
+                const totalCompleted = this.results.reduce((sum, r) => sum + r.completed, 0);
+                const totalFailed = this.results.reduce((sum, r) => sum + r.failed, 0);
+                const successRate = totalAgents > 0 ? (totalCompleted / totalAgents) * 100 : 0;
+                const avgTurns = this.results.reduce((sum, r) => sum + r.turn, 0) / this.results.length;
+
+                // Update stats
+                document.getElementById('successRate').textContent = `${successRate.toFixed(1)}%`;
+                document.getElementById('completedCount').textContent = totalCompleted;
+                document.getElementById('failedCount').textContent = totalFailed;
+                document.getElementById('avgTurns').textContent = avgTurns.toFixed(1);
+
+                // Add result card
+                const result = this.results[this.results.length - 1];
+                const resultsDiv = document.getElementById('results');
+                
+                let ratingClass = 'poor';
+                let rating = 'Poor';
+                if (result.completed >= 3) {
+                    ratingClass = 'excellent';
+                    rating = 'Excellent';
+                } else if (result.completed >= 2) {
+                    ratingClass = 'good';
+                    rating = 'Good';
+                }
+
+                const card = document.createElement('div');
+                card.className = `game-result ${ratingClass}`;
+                card.innerHTML = `
+                    <div class="game-title">Game ${current} - ${rating}</div>
+                    <div class="game-details">
+                        ✅ Completed: ${result.completed}/4 | 
+                        ❌ Failed: ${result.failed}/4 | 
+                        ⏱️ Turns: ${result.turn}/${constants.TURN_LIMIT}
+                    </div>
+                `;
+                resultsDiv.insertBefore(card, resultsDiv.firstChild);
+            }
+
+            printFinalStats() {
+                const totalAgents = this.results.length * 4;
+                const totalCompleted = this.results.reduce((sum, r) => sum + r.completed, 0);
+                const totalFailed = this.results.reduce((sum, r) => sum + r.failed, 0);
+                const successRate = (totalCompleted / totalAgents) * 100;
+                const avgTurns = this.results.reduce((sum, r) => sum + r.turn, 0) / this.results.length;
+
+                console.log('\n========================================');
+                console.log('📊 FINAL DIFFICULTY TEST RESULTS');
+                console.log('========================================');
+                console.log(`Games Played: ${this.results.length}`);
+                console.log(`Total Agents: ${totalAgents}`);
+                console.log(`✅ Completed: ${totalCompleted} (${successRate.toFixed(1)}%)`);
+                console.log(`❌ Failed: ${totalFailed}`);
+                console.log(`⏱️ Average Turns: ${avgTurns.toFixed(1)}/${constants.TURN_LIMIT}`);
+                console.log('========================================');
+                
+                if (successRate >= 40 && successRate <= 60) {
+                    console.log('✅ SUCCESS RATE IS WITHIN TARGET RANGE (40-60%)');
+                } else if (successRate < 40) {
+                    console.log('⚠️ Game is too hard - success rate below 40%');
+                } else {
+                    console.log('⚠️ Game is too easy - success rate above 60%');
+                }
+                console.log('========================================\n');
+
+                // Game-by-game breakdown
+                console.log('Game-by-Game Results:');
+                this.results.forEach((r, i) => {
+                    console.log(`  Game ${i+1}: ${r.completed} completed, ${r.failed} failed, ${r.turn} turns`);
+                });
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize tester
+        const tester = new DifficultyTester();
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            tester.runTests(10);
+        });
+    </script>
+</body>
+</html>

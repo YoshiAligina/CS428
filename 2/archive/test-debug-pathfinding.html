@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Pathfinding</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            margin: 0;
+            padding: 20px;
+        }
+        pre {
+            background-color: #252526;
+            padding: 10px;
+            border-left: 4px solid #007acc;
+            overflow-x: auto;
+        }
+        button {
+            background-color: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px 0;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005a9e;
+        }
+        .success { color: #4ec9b0; }
+        .error { color: #f48771; }
+        .warning { color: #ce9178; }
+    </style>
+</head>
+<body>
+    <h1>Debug: Pathfinding Issues</h1>
+    <button onclick="runDebugTest()">Run Debug Test</button>
+    <pre id="output"></pre>
+
+    <script>
+        let scriptsReady = false;
+        const scriptLoadState = {
+            loaded: [],
+            errors: [],
+        };
+
+        function loadScriptsSequentially(sources, onComplete) {
+            const loadNext = (index) => {
+                if (index >= sources.length) {
+                    scriptsReady = true;
+                    onComplete();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                const cacheBust = `?v=${Date.now()}`;
+                script.src = `${sources[index]}${cacheBust}`;
+                script.onload = () => {
+                    scriptLoadState.loaded.push(sources[index]);
+                    loadNext(index + 1);
+                };
+                script.onerror = () => {
+                    console.error(`Failed to load ${sources[index]}`);
+                    scriptLoadState.errors.push(sources[index]);
+                    scriptsReady = false;
+                    onComplete(new Error(`Failed to load ${sources[index]}`));
+                };
+                document.head.appendChild(script);
+            };
+
+            loadNext(0);
+        }
+
+        function log(msg, type = 'default') {
+            const output = document.getElementById('output');
+            const className = type ? ` class="${type}"` : '';
+            output.innerHTML += `<span${className}>${msg}</span>\n`;
+            console.log(`[${type}] ${msg}`);
+        }
+
+        function runDebugTest() {
+            document.getElementById('output').innerHTML = '';
+            log('═══════════════════════════════════════', 'warning');
+            log('DEBUG: Pathfinding Test', 'warning');
+            log('═══════════════════════════════════════', 'warning');
+
+            try {
+                if (!scriptsReady) {
+                    log('ERROR: Scripts not loaded yet. Please wait and try again.', 'error');
+                    return;
+                }
+
+                const BoardClass = window.Board || (typeof Board !== 'undefined' ? Board : null);
+                const UtilsLib = window.Utils || (typeof Utils !== 'undefined' ? Utils : null);
+                const AgentClass = window.Agent || (typeof Agent !== 'undefined' ? Agent : null);
+
+                if (!BoardClass || !UtilsLib || !AgentClass) {
+                    const missing = [];
+                    if (!BoardClass) missing.push('Board');
+                    if (!UtilsLib) missing.push('Utils');
+                    if (!AgentClass) missing.push('Agent');
+                    log(`ERROR: Required globals not found: ${missing.join(', ')}`, 'error');
+                    if (scriptLoadState.errors.length > 0) {
+                        log(`ERROR: Script load errors: ${scriptLoadState.errors.join(', ')}`, 'error');
+                    }
+                    return;
+                }
+
+                // Step 1: Create board
+                log('\nStep 1: Creating board...', 'warning');
+                const board = new BoardClass(16, 16);
+                log(`Board created: ${board.width}x${board.height}`, 'success');
+
+                // Step 2: Generate board
+                log('\nStep 2: Generating board...', 'warning');
+                board.generate();
+                log(`Board generated!`, 'success');
+                log(`  Roads: ${board.roadTiles.size}`, 'success');
+                log(`  Intersections: ${board.intersectionTiles.size}`, 'success');
+                log(`  Graph nodes: ${board.graph.size}`, 'success');
+
+                // Step 3: Get homes and offices
+                log('\nStep 3: Getting special locations...', 'warning');
+                const homes = board.getSpecialLocations('HOME');
+                const offices = board.getSpecialLocations('OFFICE');
+                log(`Homes found: ${homes.length}`, 'success');
+                log(`Offices found: ${offices.length}`, 'success');
+
+                if (homes.length === 0 || offices.length === 0) {
+                    log('ERROR: Not enough special locations!', 'error');
+                    return;
+                }
+
+                const home1 = homes[0];
+                const office1 = offices[0];
+                log(`Home 1: (${home1.x},${home1.y})`, 'success');
+                log(`Office 1: (${office1.x},${office1.y})`, 'success');
+
+                // Step 4: Check if locations are walkable
+                log('\nStep 4: Checking if locations are walkable...', 'warning');
+                const homeTile = board.getTile(home1.x, home1.y);
+                const officeTile = board.getTile(office1.x, office1.y);
+                log(`Home tile: ${homeTile ? homeTile.type : 'NULL'}, Walkable: ${homeTile ? homeTile.isWalkable : 'N/A'}`, 'success');
+                log(`Office tile: ${officeTile ? officeTile.type : 'NULL'}, Walkable: ${officeTile ? officeTile.isWalkable : 'N/A'}`, 'success');
+
+                // Step 5: Test Utils.findPath directly
+                log('\nStep 5: Testing Utils.findPath directly...', 'warning');
+                const directPath = UtilsLib.findPath(board, home1, office1);
+                log(`Direct path result: ${directPath.length} steps`, directPath.length > 0 ? 'success' : 'error');
+                if (directPath.length > 0) {
+                    log(`Path: ${directPath.map(p => `(${p.x},${p.y})`).join(' → ')}`, 'success');
+                }
+
+                // Step 6: Create agent
+                log('\nStep 6: Creating agent with board...', 'warning');
+                const agent = new AgentClass('1', home1, office1, '#ff6b6b', board);
+                log(`Agent created!`, 'success');
+                log(`Agent home: (${agent.homeLocation.x},${agent.homeLocation.y})`, 'success');
+                log(`Agent job: (${agent.jobLocation.x},${agent.jobLocation.y})`, 'success');
+                log(`Agent current: (${agent.currentLocation.x},${agent.currentLocation.y})`, 'success');
+                log(`Agent path length: ${agent.plannedPath.length}`, agent.plannedPath.length > 0 ? 'success' : 'error');
+                if (agent.plannedPath.length > 0) {
+                    log(`Agent path: ${agent.plannedPath.map(p => `(${p.x},${p.y})`).join(' → ')}`, 'success');
+                }
+                log(`Agent status: ${agent.status}`, agent.status === 'ACTIVE' ? 'success' : 'error');
+
+                log('\n═══════════════════════════════════════', 'warning');
+                if (agent.plannedPath.length > 0 && agent.status === 'ACTIVE') {
+                    log('✓ DEBUG TEST PASSED', 'success');
+                } else {
+                    log('✗ DEBUG TEST FAILED', 'error');
+                }
+                log('═══════════════════════════════════════', 'warning');
+
+            } catch (error) {
+                log(`✗ EXCEPTION: ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            const sources = [
+                'src/Utils.js',
+                'src/Tile.js',
+                'src/Board.js',
+                'src/Agent.js',
+            ];
+
+            loadScriptsSequentially(sources, (err) => {
+                if (err) {
+                    log(`ERROR: Script load error: ${err.message}`, 'error');
+                    return;
+                }
+
+                log(`Scripts loaded: ${scriptLoadState.loaded.join(', ')}`, 'info');
+                const globals = [
+                    `Utils=${!!window.Utils}`,
+                    `Tile=${!!window.Tile}`,
+                    `Board=${!!window.Board}`,
+                    `Agent=${!!window.Agent}`,
+                ];
+                log(`Globals: ${globals.join(' | ')}`, 'info');
+                log('Scripts loaded. Click "Run Debug Test" to start.', 'warning');
+            });
+        });
+    </script>
+</body>
+</html>

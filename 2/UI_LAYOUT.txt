@@ -1,0 +1,232 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                       ENHANCED UI LAYOUT GUIDE                                  ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+SCREEN LAYOUT:
+═════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           ┌─ TOP BAR (60px) ─────────────┐                      │
+│  Turn: 15/50  │  Special Agent: Agent 3    │   Status: Playing              │
+│  [4da6ff]     │  Rotates in: 2 turns       │   [status-playing]             │
+└─────────────────────────────────────────────────────────────────────────────────┘
+│                                                                                 │
+│  ┌─────────────────┐          ┌──────────────────────────────┐                 │
+│  │                 │          │                              │                 │
+│  │   3D CANVAS     │          │        3D CANVAS             │                 │
+│  │   (Game View)   │          │      (Game Viewport)         │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  │                 │          │                              │                 │
+│  └─────────────────┘          │                              │                 │
+│  ┌─────────────────┐          └──────────────────────────────┘                 │
+│  │   SIDE PANEL    │                                                           │
+│  │  📋 Agents &    │                                                           │
+│  │     Status      │                                                           │
+│  │                 │                                                           │
+│  │ ├─ Agent 1      │                                                           │
+│  │ │  ⚡ Special   │                                                           │
+│  │ │  Status: ...  │                                                           │
+│  │ │  Location: ..│                                                           │
+│  │ │  Turns: 30/50│                                                           │
+│  │ │  Tasks:      │                                                           │
+│  │ │  ☑ CAFE      │                                                           │
+│  │ │  ☐ GAS_STAT.│                                                           │
+│  │ │  ☐ Reach off│                                                           │
+│  │ │  [█████     ]│                                                           │
+│  │ │              │                                                           │
+│  │ └─ Agent 2      │                                                           │
+│  │    Status: ...  │                                                           │
+│  │    ...          │                                                           │
+│  │                 │                                                           │
+│  │ ┌─────────────┐ │                                                           │
+│  │ │ 📋 Checklist│ │                                                           │
+│  │ │ ┌─────────┐ │ │                                                           │
+│  │ │ │Agent 1: │ │ │                                                           │
+│  │ │ │ ✅ CAFE │ │ │                                                           │
+│  │ │ │ ⏳ GAS  │ │ │                                                           │
+│  │ │ │ ☐ Reach │ │ │                                                           │
+│  │ │ └─────────┘ │ │                                                           │
+│  │ │ ┌─────────┐ │ │                                                           │
+│  │ │ │Agent 2: │ │ │                                                           │
+│  │ │ │ ✅ CAFE │ │ │                                                           │
+│  │ │ │ ☐ HOSP. │ │ │                                                           │
+│  │ │ └─────────┘ │ │                                                           │
+│  │ └─────────────┘ │                                                           │
+│  │                 │                                                           │
+│  │ ┌─────────────┐ │                                                           │
+│  │ │ 📊 Statistics│ │                                                           │
+│  │ │ Tasks: 8     │ │                                                           │
+│  │ │ Photos: 5 t. │ │                                                           │
+│  │ │ Congestion:6 │ │                                                           │
+│  │ │ Abilities: 2 │ │                                                           │
+│  │ └─────────────┘ │                                                           │
+│  └─────────────────┘                                                           │
+│                                                                                 │
+│  ┌─────────────────────────────────────────┐                                  │
+│  │ 🗺️ MAP LEGEND (Bottom Left - Scrollable) │                                  │
+│  │                                         │                                  │
+│  │ ROADS:                                  │                                  │
+│  │ ░ Regular Road                          │                                  │
+│  │ ⚠ Congested                             │                                  │
+│  │ 🚫 Blocked                              │                                  │
+│  │                                         │                                  │
+│  │ SERVICES:                               │                                  │
+│  │ ☕ CAFE                                  │                                  │
+│  │ ⛽ Gas Station                           │                                  │
+│  │ 🏥 Hospital                             │                                  │
+│  │ ⚖️ Jail                                  │                                  │
+│  │ 📮 Postal Office                        │                                  │
+│  │                                         │                                  │
+│  │ LANDMARKS:                              │                                  │
+│  │ 🎨 Cultural Site                        │                                  │
+│  │ 🏛️ Historic Building                    │                                  │
+│  │ ...                                     │                                  │
+│  └─────────────────────────────────────────┘                                  │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                            ┌─ ACTION PANEL (Bottom Right) ─┐
+                            │                               │
+                            │ Turn Progress:                │
+                            │ [███████░░░░░░░░░░░░░░░░░░] │
+                            │ 15 / 50 turns                 │
+                            │                               │
+                            │ [End Turn]  [🚧 Roadblock]   │
+                            │                               │
+                            └───────────────────────────────┘
+
+═════════════════════════════════════════════════════════════════════════════════
+
+KEY UI FEATURES EXPLAINED:
+═════════════════════════════════════════════════════════════════════════════════
+
+1. AGENT CARDS (Side Panel - Top)
+   ├─ Agent Status Badges:
+   │  ├─ ⚡ Special Agent (Gold badge with pulse animation)
+   │  ├─ 🏥 Injured (Red badge - "INJURED - Must visit hospital")
+   │  ├─ ⚖️ Criminal (Purple badge - Shows jail status)
+   │  └─ 📷 Photo (Green badge - Shows photo delay countdown)
+   │
+   ├─ Location & Turns:
+   │  ├─ Current position (X, Y) coordinates
+   │  └─ Turn progress bar (visual percentage)
+   │
+   └─ Task Checklist:
+      ├─ ☑ Completed (green, struck through)
+      ├─ ☐ Pending (gray)
+      └─ Active task highlighted in gold
+
+2. TASK CHECKLIST PANEL
+   ├─ Organized by agent
+   ├─ Task icons with names
+   ├─ Color-coded completion status
+   └─ Updated every turn
+
+3. STATISTICS PANEL
+   ├─ Total Tasks Completed (across all agents)
+   ├─ Photo Delays (total turns spent in photos)
+   ├─ Congestion Incidents (tiles with congestion)
+   └─ Special Abilities Used (roadblocks placed)
+
+4. TURN TIMELINE
+   ├─ Visual progress bar (gradient blue→green)
+   ├─ Shows current / max turns
+   ├─ Updates every turn
+   └─ Easy visual estimation of remaining time
+
+5. MAP LEGEND
+   ├─ Color-coded by category
+   ├─ Icons for all tile types
+   ├─ Persistent, always accessible
+   ├─ Scrollable for long lists
+   └─ Bottom-left corner (non-intrusive)
+
+6. TOOLTIPS (Hover-activated)
+   ├─ Tile Tooltips:
+   │  ├─ Position (X, Y)
+   │  ├─ Type with icon
+   │  ├─ Walkability status
+   │  ├─ Congestion level
+   │  └─ Block duration
+   │
+   └─ Agent Tooltips:
+      ├─ Agent ID
+      ├─ Status
+      ├─ Location
+      ├─ Turns remaining
+      └─ Special conditions
+
+═════════════════════════════════════════════════════════════════════════════════
+
+COLOR CODING SYSTEM:
+═════════════════════════════════════════════════════════════════════════════════
+
+UI Elements:
+  🔵 Blue (#4da6ff)        ← Primary UI, active elements, borders
+  🟢 Green (#51cf66)       ← Success, completed tasks, arrived agents
+  🟡 Gold (#ffd700)        ← Special agents, current tasks, highlights
+  🔴 Red (#ff6b6b)         ← Injuries, failures, warnings
+  🟣 Purple (#a67bff)      ← Criminal status, jail information
+  ⚫ Dark gray              ← Background, inactive elements
+  ⚪ Light gray (#b0b0b0)  ← Secondary text, borders
+
+Status Badges:
+  ✅ Checkmark (Green)     = Task completed
+  ⏳ Hourglass (Gold)      = Task in progress
+  ☐ Empty box (Gray)       = Task pending
+
+═════════════════════════════════════════════════════════════════════════════════
+
+INTERACTION GUIDE:
+═════════════════════════════════════════════════════════════════════════════════
+
+Mouse Interactions:
+  • Hover over tiles → See tile tooltip (position, type, status)
+  • Hover over agents → See agent tooltip (ID, status, condition)
+  • Hover over legend items → No tooltip (items are self-explanatory)
+  • Click "End Turn" → Execute current turn
+  • Click "🚧 Roadblock" → Toggle roadblock placement mode
+
+Touch Interactions (Mobile):
+  • Long-press tile → Show tooltip
+  • Long-press agent card → Show full details
+  • Tap End Turn → Execute turn
+  • Tap Roadblock → Toggle mode
+
+Animations:
+  • Pulse: Special agent badges and status indicators
+  • Fade-in: Tooltips (0.2s ease)
+  • Flip: Turn number updates (0.6s)
+  • Smooth: All color and size transitions
+
+═════════════════════════════════════════════════════════════════════════════════
+
+INFORMATION AT A GLANCE:
+═════════════════════════════════════════════════════════════════════════════════
+
+What Each Panel Answers:
+  
+  Agent Cards:      "What's my agent doing RIGHT NOW?"
+  Task Checklist:   "What tasks has each agent completed?"
+  Statistics:       "How's the game going OVERALL?"
+  Turn Timeline:    "How much TIME is left?"
+  Map Legend:       "What DO these SYMBOLS mean?"
+
+═════════════════════════════════════════════════════════════════════════════════
