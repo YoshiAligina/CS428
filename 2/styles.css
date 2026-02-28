@@ -256,6 +256,11 @@ body.game-over #gameCanvas {
     text-shadow: 0 6px 20px rgba(81, 207, 102, 0.35);
 }
 
+.game-over-title.fail {
+    color: #ff6b6b;
+    text-shadow: 0 6px 20px rgba(255, 107, 107, 0.35);
+}
+
 .game-over-stats {
     display: grid;
     gap: 12px;

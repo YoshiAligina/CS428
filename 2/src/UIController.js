@@ -838,6 +838,7 @@ class UIController {
         if (this.uiElements.gameOverTitle) {
             this.uiElements.gameOverTitle.textContent = resultTitle;
             this.uiElements.gameOverTitle.classList.toggle('win', resultTitle === 'You Won!');
+            this.uiElements.gameOverTitle.classList.toggle('fail', playerFailed);
         }
 
         if (this.uiElements.gameOverTurns) {
