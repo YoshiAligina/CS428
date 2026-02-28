@@ -137,7 +137,7 @@ class Tile {
             [Tile.TYPES.CAFE]: 0xffd43b,        // Yellow
             [Tile.TYPES.LANDMARK]: 0xb71c1c,    // Dark red
             [Tile.TYPES.HOSPITAL]: 0xff6b6b,    // Red
-            [Tile.TYPES.JAIL]: 0x333333,        // Dark gray
+            [Tile.TYPES.JAIL]: 0x9c27b0,        // Purple
         };
         return colors[type] || 0xcccccc;  // Default gray
     }
