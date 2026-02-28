@@ -55,8 +55,6 @@ class Game {
         this.keydownListener = null;
         this.keyupListener = null;
         this.pressedKeys = new Set();
-        this.lastMovementAt = 0;
-        this.movementCooldownMs = 120;
 
     }
 
@@ -305,8 +303,11 @@ class Game {
                 if (key) {
                     event.preventDefault();
                     event.stopPropagation();
+                    if (event.repeat === true || this.pressedKeys.has(key)) {
+                        return;
+                    }
                     this.pressedKeys.add(key);
-                    this.handlePlayerMovementInput(key, event.repeat === true);
+                    this.handlePlayerMovementInput(key);
                 }
             };
             window.addEventListener('keydown', this.keydownListener, { capture: true, passive: false });
@@ -361,9 +362,6 @@ class Game {
     update() {
         if (!this.isRunning) return;
 
-        // Poll movement keys each frame for reliable controls
-        this.processMovementFromPressedKeys();
-
         // Update input manager (hover detection)
         if (this.inputManager && this.inputManager.update) {
             this.inputManager.update();
@@ -399,39 +397,6 @@ class Game {
         if (key === 'd' || keyCode === 68) return 'd';
 
         return null;
-    }
-
-    /**
-     * Process currently pressed keys and move player on cooldown
-     */
-    processMovementFromPressedKeys() {
-        if (!this.turnManager || !this.turnManager.gameRunning || this.turnManager.gameFinished) {
-            return;
-        }
-
-        const now = Date.now();
-        if (now - this.lastMovementAt < this.movementCooldownMs) {
-            return;
-        }
-
-        let move = null;
-
-        if (this.pressedKeys.has('arrowup') || this.pressedKeys.has('w')) {
-            move = { dx: 0, dy: -1 };
-        } else if (this.pressedKeys.has('arrowdown') || this.pressedKeys.has('s')) {
-            move = { dx: 0, dy: 1 };
-        } else if (this.pressedKeys.has('arrowleft') || this.pressedKeys.has('a')) {
-            move = { dx: -1, dy: 0 };
-        } else if (this.pressedKeys.has('arrowright') || this.pressedKeys.has('d')) {
-            move = { dx: 1, dy: 0 };
-        }
-
-        if (!move) {
-            return;
-        }
-
-        this.lastMovementAt = now;
-        this.movePlayer(move.dx, move.dy);
     }
 
     /**
@@ -505,9 +470,8 @@ class Game {
     /**
      * Handle keyboard movement input for the player
      * @param {string} key - Keyboard key
-     * @param {boolean} isRepeat - Whether this is an auto-repeated key event
      */
-    handlePlayerMovementInput(key, isRepeat = false) {
+    handlePlayerMovementInput(key) {
         const movementMap = {
             w: { dx: 0, dy: -1 },
             a: { dx: -1, dy: 0 },
