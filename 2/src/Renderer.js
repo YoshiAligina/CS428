@@ -89,6 +89,14 @@ class Renderer {
             y: board.height / 2,
         };
 
+        // Compass UI hooks
+        this.compassDialElement = (typeof document !== 'undefined')
+            ? document.getElementById('compassDial')
+            : null;
+        this.compassReadingElement = (typeof document !== 'undefined')
+            ? document.getElementById('compassReading')
+            : null;
+
         // Initialize renderer
         this.init();
 
@@ -1957,6 +1965,33 @@ class Renderer {
     }
 
     /**
+     * Update compass dial rotation and heading label based on camera orientation
+     */
+    updateCompass() {
+        if (!this.camera || !this.compassDialElement) {
+            return;
+        }
+
+        const targetX = this.controls ? this.controls.target.x : this.boardCenter.x;
+        const targetZ = this.controls ? this.controls.target.z : this.boardCenter.y;
+
+        const toTargetX = targetX - this.camera.position.x;
+        const toTargetZ = targetZ - this.camera.position.z;
+
+        const angleRad = Math.atan2(toTargetX, -toTargetZ);
+        const angleDeg = (angleRad * 180 / Math.PI + 360) % 360;
+
+        // Rotate dial so cardinal letters follow map orientation while top marker stays fixed
+        this.compassDialElement.style.transform = `rotate(${-angleDeg}deg)`;
+
+        if (this.compassReadingElement) {
+            const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+            const idx = Math.round(angleDeg / 45) % dirs.length;
+            this.compassReadingElement.textContent = `Up: ${dirs[idx]}`;
+        }
+    }
+
+    /**
      * Animate agent movement from one position to another
      * @param {string} agentId - Agent identifier
      * @param {THREE.Vector3} from - Starting position
@@ -2418,6 +2453,9 @@ class Renderer {
         
         // Update camera animation
         this.updateCameraAnimation();
+
+        // Update compass orientation with camera movement
+        this.updateCompass();
         
         // Update agent animations
         this.updateAgentAnimations();
