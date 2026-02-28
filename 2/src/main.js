@@ -492,6 +492,62 @@ class Game {
     }
 
     /**
+     * Check if a tile can be entered by player movement rules
+     * Buildings/special buildings are only enterable when they are required destinations.
+     * @param {Agent} player
+     * @param {Tile} tile
+     * @param {number} x
+     * @param {number} y
+     * @returns {boolean}
+     */
+    canPlayerEnterTile(player, tile, x, y) {
+        if (!tile || tile.isBlocked) {
+            return false;
+        }
+
+        const alwaysWalkableTypes = new Set(['ROAD', 'INTERSECTION', 'LANDMARK']);
+        if (alwaysWalkableTypes.has(tile.type)) {
+            return true;
+        }
+
+        if (tile.type === 'HOSPITAL' && player.mustVisitHospital) {
+            return true;
+        }
+
+        if (tile.type === 'JAIL' && player.mustVisitJail) {
+            return true;
+        }
+
+        const destinationKeys = new Set();
+
+        if (player.homeLocation) {
+            destinationKeys.add(`${player.homeLocation.x},${player.homeLocation.y}`);
+        }
+
+        if (player.jobLocation) {
+            destinationKeys.add(`${player.jobLocation.x},${player.jobLocation.y}`);
+        }
+
+        if (player.hospitalTaskLocation) {
+            destinationKeys.add(`${player.hospitalTaskLocation.x},${player.hospitalTaskLocation.y}`);
+        }
+
+        if (player.jailTaskLocation) {
+            destinationKeys.add(`${player.jailTaskLocation.x},${player.jailTaskLocation.y}`);
+        }
+
+        if (Array.isArray(player.tasksQueue)) {
+            for (const task of player.tasksQueue) {
+                if (!task.completed && task.location) {
+                    destinationKeys.add(`${task.location.x},${task.location.y}`);
+                }
+            }
+        }
+
+        return destinationKeys.has(`${x},${y}`);
+    }
+
+    /**
      * Move player one tile if valid and advance turn state
      * @param {number} dx - Delta x
      * @param {number} dy - Delta y
@@ -508,9 +564,8 @@ class Game {
             return false;
         }
 
-        const isAtJailLocation = player.jailTaskLocation &&
-            player.currentLocation.x === player.jailTaskLocation.x &&
-            player.currentLocation.y === player.jailTaskLocation.y;
+        const currentTile = this.board.getTile(player.currentLocation.x, player.currentLocation.y);
+        const isAtJailLocation = currentTile && currentTile.type === 'JAIL';
         if (!player.isInJail && player.mustVisitJail && isAtJailLocation && player.jailSentence > 0) {
             player.isInJail = true;
         }
@@ -555,7 +610,7 @@ class Game {
         }
 
         const targetTile = this.board.getTile(targetX, targetY);
-        if (!targetTile || targetTile.isBlocked) {
+        if (!this.canPlayerEnterTile(player, targetTile, targetX, targetY)) {
             this.setMovementDebug(`Blocked: tile unavailable at (${targetX}, ${targetY})`);
             return false;
         }

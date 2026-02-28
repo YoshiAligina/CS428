@@ -63,6 +63,10 @@ class Renderer {
             criminal: null,
             cafe: null,
         };
+        this.multiObjectiveHighlightMeshes = {
+            hospitals: new Map(),
+            jails: new Map(),
+        };
         
         // Camera animation
         this.cameraAnimation = null;      // {from, to, progress, duration, startTime}
@@ -1578,6 +1582,49 @@ class Renderer {
                 this.objectiveHighlightMeshes[key] = null;
             }
         }
+
+        const clearMulti = (map) => {
+            map.forEach((mesh) => this.scene.remove(mesh));
+            map.clear();
+        };
+
+        clearMulti(this.multiObjectiveHighlightMeshes.hospitals);
+        clearMulti(this.multiObjectiveHighlightMeshes.jails);
+    }
+
+    /**
+     * Sync multiple objective highlights to exact coordinates.
+     * @param {Map<string,THREE.Group>} highlightMap
+     * @param {Array<{x:number,y:number}>} locations
+     * @param {number} color
+     */
+    syncMultiObjectiveHighlights(highlightMap, locations, color) {
+        const desiredKeys = new Set();
+
+        (locations || []).forEach((location) => {
+            if (!location) {
+                return;
+            }
+
+            const key = `${location.x},${location.y}`;
+            desiredKeys.add(key);
+
+            let highlight = highlightMap.get(key);
+            if (!highlight) {
+                highlight = this.createObjectiveHighlightMesh(color);
+                highlightMap.set(key, highlight);
+            }
+
+            highlight.visible = true;
+            highlight.position.set(location.x, 0.02, location.y);
+        });
+
+        highlightMap.forEach((highlight, key) => {
+            if (!desiredKeys.has(key)) {
+                this.scene.remove(highlight);
+                highlightMap.delete(key);
+            }
+        });
     }
 
     /**
@@ -1638,25 +1685,31 @@ class Renderer {
             this.objectiveHighlightMeshes.cafe.visible = false;
         }
 
-        // Create injury hospital glow (white) - shows when agent is injured
-        if (!this.objectiveHighlightMeshes.injury) {
-            this.objectiveHighlightMeshes.injury = this.createObjectiveHighlightMesh(0xffffff);
-        }
-        if (player.isInjured && player.hospitalLocation) {
-            this.objectiveHighlightMeshes.injury.visible = true;
-            this.objectiveHighlightMeshes.injury.position.set(player.hospitalLocation.x, 0.02, player.hospitalLocation.y);
-        } else {
+        // Show all hospital objectives when injured
+        const hospitalLocations = (player.isInjured && this.board && this.board.specialLocations)
+            ? (this.board.specialLocations.hospitals || [])
+            : [];
+        this.syncMultiObjectiveHighlights(
+            this.multiObjectiveHighlightMeshes.hospitals,
+            hospitalLocations,
+            0xffffff
+        );
+
+        // Show all jail objectives when criminal
+        const jailLocations = (player.isCriminal && this.board && this.board.specialLocations)
+            ? (this.board.specialLocations.jails || [])
+            : [];
+        this.syncMultiObjectiveHighlights(
+            this.multiObjectiveHighlightMeshes.jails,
+            jailLocations,
+            0xba68c8
+        );
+
+        // Legacy single-target meshes disabled (multi-highlight mode)
+        if (this.objectiveHighlightMeshes.injury) {
             this.objectiveHighlightMeshes.injury.visible = false;
         }
-
-        // Create criminal jail glow (purple) - shows when agent is criminal
-        if (!this.objectiveHighlightMeshes.criminal) {
-            this.objectiveHighlightMeshes.criminal = this.createObjectiveHighlightMesh(0xba68c8);
-        }
-        if (player.isCriminal && player.jailLocation) {
-            this.objectiveHighlightMeshes.criminal.visible = true;
-            this.objectiveHighlightMeshes.criminal.position.set(player.jailLocation.x, 0.02, player.jailLocation.y);
-        } else {
+        if (this.objectiveHighlightMeshes.criminal) {
             this.objectiveHighlightMeshes.criminal.visible = false;
         }
     }

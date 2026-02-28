@@ -418,10 +418,8 @@ class Agent {
             arrived = true;
         }
 
-        // Check for jail arrival when criminal
-        if (this.mustVisitJail && this.jailTaskLocation &&
-            this.currentLocation.x === this.jailTaskLocation.x &&
-            this.currentLocation.y === this.jailTaskLocation.y) {
+        // Check for jail arrival when criminal (any jail tile is valid)
+        if (this.mustVisitJail && currentTile && currentTile.type === Tile.TYPES.JAIL) {
             this.isInJail = true;
             arrived = true;
         }
