@@ -49,6 +49,8 @@ class Renderer {
         this.agentInjuryMeshes = new Map(); // Key: agent.id, Value: THREE.Sprite (injury icon)
         this.agentCriminalMeshes = new Map(); // Key: agent.id, Value: THREE.Sprite (criminal icon)
         this.agentPhotoCameraMeshes = new Map(); // Key: agent.id, Value: THREE.Sprite (camera icon)
+        this.agentRoleRingMeshes = new Map(); // Key: agent.id, Value: THREE.Mesh (player/npc role ring)
+        this.agentRoleLabelMeshes = new Map(); // Key: agent.id, Value: THREE.Sprite (YOU/NPC label)
         this.trafficOverlays = new Map(); // Key: "x,y", Value: THREE.Mesh (congestion/blocking)
         this.agentPathMeshes = new Map(); // Key: agent.id, Value: THREE.LineSegments (multi-segment path)
         this.agentAnimations = new Map(); // Key: agent.id, Value: {from, to, progress, duration, startTime}
@@ -1205,11 +1207,12 @@ class Renderer {
 
         for (const agent of agentsToRender) {
             const isCommuterNpc = agent.isCommuter === true;
+            const isPlayer = agent.isPlayerControlled === true;
 
             // Player: sphere orb, NPC commuter: smaller cube
             const geometry = isCommuterNpc
                 ? new THREE.BoxGeometry(0.28, 0.28, 0.28)
-                : new THREE.SphereGeometry(0.2, 16, 16);
+                : new THREE.SphereGeometry(0.24, 16, 16);
 
             // Use agent color for material
             const color = new THREE.Color(agent.color || '#4da6ff');
@@ -1219,7 +1222,7 @@ class Renderer {
                 metalness: 0.6,
                 roughness: 0.2,
                 emissive: color,
-                emissiveIntensity: isCommuterNpc ? 0.2 : 0.3,
+                emissiveIntensity: isCommuterNpc ? 0.2 : 0.38,
             });
 
             // Create mesh
@@ -1238,6 +1241,49 @@ class Renderer {
             // Add to scene and store in map
             this.scene.add(mesh);
             this.agentMeshes.set(agent.id.toString(), mesh);
+
+            const roleRingGeometry = new THREE.TorusGeometry(isPlayer ? 0.34 : 0.28, 0.04, 10, 20);
+            const roleRingColor = isPlayer ? 0x4da6ff : 0xff8c42;
+            const roleRingMaterial = new THREE.MeshStandardMaterial({
+                color: roleRingColor,
+                emissive: roleRingColor,
+                emissiveIntensity: isPlayer ? 1.0 : 0.55,
+                transparent: true,
+                opacity: isPlayer ? 0.95 : 0.8,
+            });
+            const roleRing = new THREE.Mesh(roleRingGeometry, roleRingMaterial);
+            roleRing.rotation.x = Math.PI / 2;
+            roleRing.position.set(agent.currentLocation.x, 0.18, agent.currentLocation.y);
+            roleRing.userData.isPlayer = isPlayer;
+            this.scene.add(roleRing);
+            this.agentRoleRingMeshes.set(agent.id.toString(), roleRing);
+
+            const roleCanvas = document.createElement('canvas');
+            roleCanvas.width = 128;
+            roleCanvas.height = 64;
+            const roleCtx = roleCanvas.getContext('2d');
+
+            roleCtx.clearRect(0, 0, 128, 64);
+            roleCtx.fillStyle = isPlayer ? 'rgba(77,166,255,0.95)' : 'rgba(255,140,66,0.95)';
+            roleCtx.fillRect(8, 12, 112, 40);
+            roleCtx.fillStyle = '#ffffff';
+            roleCtx.font = 'bold 26px Segoe UI';
+            roleCtx.textAlign = 'center';
+            roleCtx.textBaseline = 'middle';
+            roleCtx.fillText(isPlayer ? 'YOU' : 'NPC', 64, 33);
+
+            const roleTexture = new THREE.CanvasTexture(roleCanvas);
+            const roleMaterial = new THREE.SpriteMaterial({
+                map: roleTexture,
+                transparent: true,
+                depthTest: false,
+                depthWrite: false,
+            });
+            const roleSprite = new THREE.Sprite(roleMaterial);
+            roleSprite.position.set(agent.currentLocation.x, isPlayer ? 1.25 : 1.05, agent.currentLocation.y);
+            roleSprite.scale.set(isPlayer ? 0.95 : 0.82, 0.4, 1);
+            this.scene.add(roleSprite);
+            this.agentRoleLabelMeshes.set(agent.id.toString(), roleSprite);
 
             // Create special agent aura (hidden by default)
             const auraGeometry = new THREE.TorusGeometry(0.35, 0.06, 12, 24);
@@ -1386,6 +1432,8 @@ class Renderer {
         removeAll(this.agentInjuryMeshes);
         removeAll(this.agentCriminalMeshes);
         removeAll(this.agentPhotoCameraMeshes);
+        removeAll(this.agentRoleRingMeshes);
+        removeAll(this.agentRoleLabelMeshes);
         removeAll(this.agentPathMeshes);
         this.agentAnimations.clear();
         this.clearObjectiveHighlights();
@@ -1712,6 +1760,20 @@ class Renderer {
                     cameraIcon.material.opacity = 0.0;
                 }
             }
+
+            const roleRing = this.agentRoleRingMeshes.get(key);
+            if (roleRing) {
+                roleRing.position.set(agent.currentLocation.x, 0.18, agent.currentLocation.y);
+            }
+
+            const roleLabel = this.agentRoleLabelMeshes.get(key);
+            if (roleLabel) {
+                roleLabel.position.set(
+                    agent.currentLocation.x,
+                    agent.isPlayerControlled ? 1.25 : 1.05,
+                    agent.currentLocation.y
+                );
+            }
         }
 
         this.updateObjectiveHighlights(playerAgent);
@@ -1851,6 +1913,21 @@ class Renderer {
             // Add subtle pulsing scale to active agents
             const scale = 1.0 + pulse * 0.1;
             mesh.scale.setScalar(scale);
+
+            const roleRing = this.agentRoleRingMeshes.get(agentId);
+            if (roleRing) {
+                const isPlayer = roleRing.userData && roleRing.userData.isPlayer;
+                const ringScale = isPlayer ? (1.0 + pulse * 0.18) : (1.0 + pulse * 0.08);
+                roleRing.scale.setScalar(ringScale);
+                roleRing.material.emissiveIntensity = isPlayer ? (0.75 + pulse * 0.45) : (0.45 + pulse * 0.2);
+                roleRing.position.set(mesh.position.x, 0.18, mesh.position.z);
+            }
+
+            const roleLabel = this.agentRoleLabelMeshes.get(agentId);
+            if (roleLabel) {
+                const baseY = roleLabel.scale.x > 0.9 ? 1.25 : 1.05;
+                roleLabel.position.set(mesh.position.x, baseY + pulse * 0.03, mesh.position.z);
+            }
         });
 
         // Update special agent aura pulse and transitions

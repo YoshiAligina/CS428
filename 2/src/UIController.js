@@ -343,6 +343,8 @@ class UIController {
         const turnsUsed = maxTurns - (agent.turnsRemaining || 0);
         const progressPercent = Math.min((turnsUsed / maxTurns) * 100, 100);
         const progressClass = agent.turnsRemaining < 5 ? 'low' : '';
+        const roleClass = agent.isPlayerControlled ? 'player' : 'npc';
+        const roleLabel = agent.isPlayerControlled ? 'PLAYER' : 'NPC';
 
         const abilityBadge = agent.hasAbility
             ? '<div class="agent-ability-badge">⚡ Special Agent</div>'
@@ -376,6 +378,7 @@ class UIController {
                 <div class="agent-name">
                     <span class="agent-color-dot" style="background-color: ${agent.color};"></span>
                     ${displayName}
+                    <span class="agent-role-badge ${roleClass}">${roleLabel}</span>
                 </div>
                 <div class="agent-status-badge ${statusClass}">${statusText}</div>
             </div>
