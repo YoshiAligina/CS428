@@ -30,6 +30,7 @@ class UIController {
         this.uiElements.maxTurns = document.getElementById('maxTurns');
         this.uiElements.gameStatus = document.getElementById('gameStatus');
         this.uiElements.statusText = document.getElementById('statusText');
+        this.uiElements.currentTime = document.getElementById('currentTime');
         this.uiElements.specialAgentPanel = document.getElementById('specialAgentPanel');
         this.uiElements.specialAgentName = document.getElementById('specialAgentName');
         this.uiElements.specialAgentCountdown = document.getElementById('specialAgentCountdownValue');
@@ -191,10 +192,15 @@ class UIController {
         setTimeout(() => {
             this.uiElements.turnNumber.classList.remove('flip');
         }, 600);
-        
-        // Update day/night cycle in renderer
-        if (window.gameRenderer && window.gameRenderer.updateDayNightCycle) {
-            window.gameRenderer.updateDayNightCycle(currentTurn);
+
+        const currentTimeText = this.getCurrentCommuteTimeText(currentTurn);
+        if (this.uiElements.currentTime) {
+            this.uiElements.currentTime.textContent = currentTimeText;
+        }
+
+        // Update commute lighting in renderer (7:00 AM → 9:00 AM)
+        if (window.gameRenderer && window.gameRenderer.updateCommuteLighting) {
+            window.gameRenderer.updateCommuteLighting(currentTurn);
         }
         
         // Update block counter
@@ -202,6 +208,27 @@ class UIController {
 
         // Update special agent status
         this.updateSpecialAgentStatus();
+    }
+
+    /**
+     * Convert turn number into commute time text (7:00 AM to 9:00 AM)
+     * @param {number} currentTurn
+     * @returns {string}
+     */
+    getCurrentCommuteTimeText(currentTurn) {
+        const maxTurns = (this.turnManager && this.turnManager.config && this.turnManager.config.maxTurns)
+            ? this.turnManager.config.maxTurns
+            : 1;
+
+        const progress = Math.min(Math.max(currentTurn / maxTurns, 0), 1);
+        const totalMinutes = Math.round(progress * 120);
+        const minutesSinceMidnight = 7 * 60 + totalMinutes;
+        const hour24 = Math.floor(minutesSinceMidnight / 60);
+        const minute = minutesSinceMidnight % 60;
+        const hour12 = ((hour24 + 11) % 12) + 1;
+        const minuteText = minute.toString().padStart(2, '0');
+
+        return `${hour12}:${minuteText} AM`;
     }
 
     /**
@@ -316,6 +343,8 @@ class UIController {
         const turnsUsed = maxTurns - (agent.turnsRemaining || 0);
         const progressPercent = Math.min((turnsUsed / maxTurns) * 100, 100);
         const progressClass = agent.turnsRemaining < 5 ? 'low' : '';
+        const roleClass = agent.isPlayerControlled ? 'player' : 'npc';
+        const roleLabel = agent.isPlayerControlled ? 'PLAYER' : 'NPC';
 
         const abilityBadge = agent.hasAbility
             ? '<div class="agent-ability-badge">⚡ Special Agent</div>'
@@ -349,6 +378,7 @@ class UIController {
                 <div class="agent-name">
                     <span class="agent-color-dot" style="background-color: ${agent.color};"></span>
                     ${displayName}
+                    <span class="agent-role-badge ${roleClass}">${roleLabel}</span>
                 </div>
                 <div class="agent-status-badge ${statusClass}">${statusText}</div>
             </div>

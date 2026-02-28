@@ -58,6 +58,17 @@ body.game-over #gameCanvas {
     font-family: 'Courier New', monospace;
 }
 
+#timeDisplay {
+    font-size: 17px;
+    font-weight: bold;
+    color: #ffd166;
+    font-family: 'Courier New', monospace;
+}
+
+#currentTime {
+    color: #ffe8a1;
+}
+
 #turnNumber {
     color: #51cf66;
     font-size: 24px;
@@ -415,6 +426,26 @@ body.game-over #gameCanvas {
     border-radius: 50%;
     display: inline-block;
     border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.agent-role-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    letter-spacing: 0.3px;
+}
+
+.agent-role-badge.player {
+    background: rgba(77, 166, 255, 0.25);
+    border: 1px solid rgba(77, 166, 255, 0.75);
+    color: #9ed0ff;
+}
+
+.agent-role-badge.npc {
+    background: rgba(255, 140, 66, 0.2);
+    border: 1px solid rgba(255, 140, 66, 0.75);
+    color: #ffbd8f;
 }
 
 .agent-status-badge {
@@ -822,6 +853,10 @@ button:disabled {
 
     #turnDisplay {
         font-size: 14px;
+    }
+
+    #timeDisplay {
+        font-size: 13px;
     }
 
     #turnNumber {

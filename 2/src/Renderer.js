@@ -49,6 +49,8 @@ class Renderer {
         this.agentInjuryMeshes = new Map(); // Key: agent.id, Value: THREE.Sprite (injury icon)
         this.agentCriminalMeshes = new Map(); // Key: agent.id, Value: THREE.Sprite (criminal icon)
         this.agentPhotoCameraMeshes = new Map(); // Key: agent.id, Value: THREE.Sprite (camera icon)
+        this.agentRoleRingMeshes = new Map(); // Key: agent.id, Value: THREE.Mesh (player/npc role ring)
+        this.agentRoleLabelMeshes = new Map(); // Key: agent.id, Value: THREE.Sprite (YOU/NPC label)
         this.trafficOverlays = new Map(); // Key: "x,y", Value: THREE.Mesh (congestion/blocking)
         this.agentPathMeshes = new Map(); // Key: agent.id, Value: THREE.LineSegments (multi-segment path)
         this.agentAnimations = new Map(); // Key: agent.id, Value: {from, to, progress, duration, startTime}
@@ -68,7 +70,7 @@ class Renderer {
         
         const constants = Renderer.getConstants();
 
-        // Day/night cycle
+        // Commute-time lighting cycle (7:00 AM to 9:00 AM)
         this.currentTurn = 0;
         this.maxTurns = constants.TURN_LIMIT;
         
@@ -1281,11 +1283,12 @@ class Renderer {
 
         for (const agent of agentsToRender) {
             const isCommuterNpc = agent.isCommuter === true;
+            const isPlayer = agent.isPlayerControlled === true;
 
             // Player: sphere orb, NPC commuter: smaller cube
             const geometry = isCommuterNpc
                 ? new THREE.BoxGeometry(0.28, 0.28, 0.28)
-                : new THREE.SphereGeometry(0.2, 16, 16);
+                : new THREE.SphereGeometry(0.24, 16, 16);
 
             // Use agent color for material
             const color = new THREE.Color(agent.color || '#4da6ff');
@@ -1295,7 +1298,7 @@ class Renderer {
                 metalness: 0.6,
                 roughness: 0.2,
                 emissive: color,
-                emissiveIntensity: isCommuterNpc ? 0.2 : 0.3,
+                emissiveIntensity: isCommuterNpc ? 0.2 : 0.38,
             });
 
             // Create mesh
@@ -1314,6 +1317,49 @@ class Renderer {
             // Add to scene and store in map
             this.scene.add(mesh);
             this.agentMeshes.set(agent.id.toString(), mesh);
+
+            const roleRingGeometry = new THREE.TorusGeometry(isPlayer ? 0.34 : 0.28, 0.04, 10, 20);
+            const roleRingColor = isPlayer ? 0x4da6ff : 0xff8c42;
+            const roleRingMaterial = new THREE.MeshStandardMaterial({
+                color: roleRingColor,
+                emissive: roleRingColor,
+                emissiveIntensity: isPlayer ? 1.0 : 0.55,
+                transparent: true,
+                opacity: isPlayer ? 0.95 : 0.8,
+            });
+            const roleRing = new THREE.Mesh(roleRingGeometry, roleRingMaterial);
+            roleRing.rotation.x = Math.PI / 2;
+            roleRing.position.set(agent.currentLocation.x, 0.18, agent.currentLocation.y);
+            roleRing.userData.isPlayer = isPlayer;
+            this.scene.add(roleRing);
+            this.agentRoleRingMeshes.set(agent.id.toString(), roleRing);
+
+            const roleCanvas = document.createElement('canvas');
+            roleCanvas.width = 128;
+            roleCanvas.height = 64;
+            const roleCtx = roleCanvas.getContext('2d');
+
+            roleCtx.clearRect(0, 0, 128, 64);
+            roleCtx.fillStyle = isPlayer ? 'rgba(77,166,255,0.95)' : 'rgba(255,140,66,0.95)';
+            roleCtx.fillRect(8, 12, 112, 40);
+            roleCtx.fillStyle = '#ffffff';
+            roleCtx.font = 'bold 26px Segoe UI';
+            roleCtx.textAlign = 'center';
+            roleCtx.textBaseline = 'middle';
+            roleCtx.fillText(isPlayer ? 'YOU' : 'NPC', 64, 33);
+
+            const roleTexture = new THREE.CanvasTexture(roleCanvas);
+            const roleMaterial = new THREE.SpriteMaterial({
+                map: roleTexture,
+                transparent: true,
+                depthTest: false,
+                depthWrite: false,
+            });
+            const roleSprite = new THREE.Sprite(roleMaterial);
+            roleSprite.position.set(agent.currentLocation.x, isPlayer ? 1.25 : 1.05, agent.currentLocation.y);
+            roleSprite.scale.set(isPlayer ? 0.95 : 0.82, 0.4, 1);
+            this.scene.add(roleSprite);
+            this.agentRoleLabelMeshes.set(agent.id.toString(), roleSprite);
 
             // Create special agent aura (hidden by default)
             const auraGeometry = new THREE.TorusGeometry(0.35, 0.06, 12, 24);
@@ -1462,6 +1508,8 @@ class Renderer {
         removeAll(this.agentInjuryMeshes);
         removeAll(this.agentCriminalMeshes);
         removeAll(this.agentPhotoCameraMeshes);
+        removeAll(this.agentRoleRingMeshes);
+        removeAll(this.agentRoleLabelMeshes);
         removeAll(this.agentPathMeshes);
         this.agentAnimations.clear();
         this.clearObjectiveHighlights();
@@ -1834,6 +1882,20 @@ class Renderer {
                     cameraIcon.material.opacity = 0.0;
                 }
             }
+
+            const roleRing = this.agentRoleRingMeshes.get(key);
+            if (roleRing) {
+                roleRing.position.set(agent.currentLocation.x, 0.18, agent.currentLocation.y);
+            }
+
+            const roleLabel = this.agentRoleLabelMeshes.get(key);
+            if (roleLabel) {
+                roleLabel.position.set(
+                    agent.currentLocation.x,
+                    agent.isPlayerControlled ? 1.25 : 1.05,
+                    agent.currentLocation.y
+                );
+            }
         }
 
         this.updateObjectiveHighlights(playerAgent);
@@ -1973,6 +2035,21 @@ class Renderer {
             // Add subtle pulsing scale to active agents
             const scale = 1.0 + pulse * 0.1;
             mesh.scale.setScalar(scale);
+
+            const roleRing = this.agentRoleRingMeshes.get(agentId);
+            if (roleRing) {
+                const isPlayer = roleRing.userData && roleRing.userData.isPlayer;
+                const ringScale = isPlayer ? (1.0 + pulse * 0.18) : (1.0 + pulse * 0.08);
+                roleRing.scale.setScalar(ringScale);
+                roleRing.material.emissiveIntensity = isPlayer ? (0.75 + pulse * 0.45) : (0.45 + pulse * 0.2);
+                roleRing.position.set(mesh.position.x, 0.18, mesh.position.z);
+            }
+
+            const roleLabel = this.agentRoleLabelMeshes.get(agentId);
+            if (roleLabel) {
+                const baseY = roleLabel.scale.x > 0.9 ? 1.25 : 1.05;
+                roleLabel.position.set(mesh.position.x, baseY + pulse * 0.03, mesh.position.z);
+            }
         });
 
         // Update special agent aura pulse and transitions
@@ -2120,49 +2197,26 @@ class Renderer {
     }
 
     /**
-     * Update day/night cycle based on turn number
+     * Update commute-time lighting based on turn number (7:00 AM to 9:00 AM)
      * @param {number} turn - Current turn number
      */
-    updateDayNightCycle(turn) {
+    updateCommuteLighting(turn) {
         this.currentTurn = turn;
         
         if (!this.directionalLight || !this.ambientLight) return;
 
-        // Calculate time of day (0 = morning, 1 = night)
-        const dayProgress = turn / this.maxTurns;
-
-        let lightColor, ambientColor, intensity;
-
-        if (turn <= 10) {
-            // Morning (0-10): warm golden light
-            const t = turn / 10;
-            lightColor = new THREE.Color().lerpColors(
-                new THREE.Color(0xffa726), // Orange morning
-                new THREE.Color(0xffffff), // Bright white
-                t
-            );
-            ambientColor = new THREE.Color(0xffd9a3);
-            intensity = 0.7 + t * 0.3; // 0.7 to 1.0
-        } else if (turn <= 25) {
-            // Afternoon (11-25): bright white light
-            lightColor = new THREE.Color(0xffffff);
-            ambientColor = new THREE.Color(0xb8d4e8);
-            intensity = 1.0;
-        } else {
-            // Evening/Night (26-40): warm orange/dim
-            const t = (turn - 25) / 15;
-            lightColor = new THREE.Color().lerpColors(
-                new THREE.Color(0xffffff),
-                new THREE.Color(0xff6b35), // Warm sunset
-                t
-            );
-            ambientColor = new THREE.Color().lerpColors(
-                new THREE.Color(0xb8d4e8),
-                new THREE.Color(0x4a5568), // Dim blue-gray
-                t
-            );
-            intensity = 1.0 - t * 0.5; // 1.0 to 0.5
-        }
+        const progress = Math.min(Math.max(turn / Math.max(this.maxTurns, 1), 0), 1);
+        const lightColor = new THREE.Color().lerpColors(
+            new THREE.Color(0xffc78a),
+            new THREE.Color(0xfff2d6),
+            progress
+        );
+        const ambientColor = new THREE.Color().lerpColors(
+            new THREE.Color(0x9fb6d8),
+            new THREE.Color(0xc9ddf2),
+            progress
+        );
+        const intensity = 0.78 + (progress * 0.3);
 
         // Apply lighting changes with smooth transition
         this.directionalLight.color.copy(lightColor);
