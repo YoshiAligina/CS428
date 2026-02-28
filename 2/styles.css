@@ -58,6 +58,17 @@ body.game-over #gameCanvas {
     font-family: 'Courier New', monospace;
 }
 
+#timeDisplay {
+    font-size: 17px;
+    font-weight: bold;
+    color: #ffd166;
+    font-family: 'Courier New', monospace;
+}
+
+#currentTime {
+    color: #ffe8a1;
+}
+
 #turnNumber {
     color: #51cf66;
     font-size: 24px;
@@ -822,6 +833,10 @@ button:disabled {
 
     #turnDisplay {
         font-size: 14px;
+    }
+
+    #timeDisplay {
+        font-size: 13px;
     }
 
     #turnNumber {

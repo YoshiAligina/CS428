@@ -65,7 +65,7 @@ class Renderer {
         
         const constants = Renderer.getConstants();
 
-        // Day/night cycle
+        // Commute-time lighting cycle (7:00 AM to 9:00 AM)
         this.currentTurn = 0;
         this.maxTurns = constants.TURN_LIMIT;
         
@@ -1998,49 +1998,26 @@ class Renderer {
     }
 
     /**
-     * Update day/night cycle based on turn number
+     * Update commute-time lighting based on turn number (7:00 AM to 9:00 AM)
      * @param {number} turn - Current turn number
      */
-    updateDayNightCycle(turn) {
+    updateCommuteLighting(turn) {
         this.currentTurn = turn;
         
         if (!this.directionalLight || !this.ambientLight) return;
 
-        // Calculate time of day (0 = morning, 1 = night)
-        const dayProgress = turn / this.maxTurns;
-
-        let lightColor, ambientColor, intensity;
-
-        if (turn <= 10) {
-            // Morning (0-10): warm golden light
-            const t = turn / 10;
-            lightColor = new THREE.Color().lerpColors(
-                new THREE.Color(0xffa726), // Orange morning
-                new THREE.Color(0xffffff), // Bright white
-                t
-            );
-            ambientColor = new THREE.Color(0xffd9a3);
-            intensity = 0.7 + t * 0.3; // 0.7 to 1.0
-        } else if (turn <= 25) {
-            // Afternoon (11-25): bright white light
-            lightColor = new THREE.Color(0xffffff);
-            ambientColor = new THREE.Color(0xb8d4e8);
-            intensity = 1.0;
-        } else {
-            // Evening/Night (26-40): warm orange/dim
-            const t = (turn - 25) / 15;
-            lightColor = new THREE.Color().lerpColors(
-                new THREE.Color(0xffffff),
-                new THREE.Color(0xff6b35), // Warm sunset
-                t
-            );
-            ambientColor = new THREE.Color().lerpColors(
-                new THREE.Color(0xb8d4e8),
-                new THREE.Color(0x4a5568), // Dim blue-gray
-                t
-            );
-            intensity = 1.0 - t * 0.5; // 1.0 to 0.5
-        }
+        const progress = Math.min(Math.max(turn / Math.max(this.maxTurns, 1), 0), 1);
+        const lightColor = new THREE.Color().lerpColors(
+            new THREE.Color(0xffc78a),
+            new THREE.Color(0xfff2d6),
+            progress
+        );
+        const ambientColor = new THREE.Color().lerpColors(
+            new THREE.Color(0x9fb6d8),
+            new THREE.Color(0xc9ddf2),
+            progress
+        );
+        const intensity = 0.78 + (progress * 0.3);
 
         // Apply lighting changes with smooth transition
         this.directionalLight.color.copy(lightColor);
