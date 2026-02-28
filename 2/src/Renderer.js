@@ -59,6 +59,9 @@ class Renderer {
             home: null,
             task: null,
             office: null,
+            injury: null,
+            criminal: null,
+            cafe: null,
         };
         
         // Camera animation
@@ -314,6 +317,9 @@ class Renderer {
 
                 } else if (tile.type === 'HOSPITAL') {
                     mesh = this.createHospitalMesh(x, y, tileSize);
+
+                } else if (tile.type === 'CAFE') {
+                    mesh = this.createCafeMesh(x, y, tileSize);
 
                 } else if (tile.type === 'JAIL') {
                     mesh = this.createJailMesh(x, y, tileSize);
@@ -994,7 +1000,7 @@ class Renderer {
      * @returns {THREE.Mesh} Marker mesh
      */
     createSpecialLocationMarker(type, x, y) {
-        if (type === 'LANDMARK' || type === 'HOSPITAL' || type === 'JAIL') {
+        if (type === 'LANDMARK' || type === 'HOSPITAL' || type === 'JAIL' || type === 'CAFE') {
             return null;
         }
 
@@ -1100,11 +1106,11 @@ class Renderer {
         const baseHeight = tileSize * 1.0;
         const baseGeometry = new THREE.BoxGeometry(tileSize * 0.9, baseHeight, tileSize * 0.9);
         const baseMaterial = new THREE.MeshStandardMaterial({
-            color: 0x2b2b2b,
+            color: 0x9c27b0,
             metalness: 0.2,
             roughness: 0.6,
-            emissive: 0x111111,
-            emissiveIntensity: 0.2,
+            emissive: 0x7b1fa2,
+            emissiveIntensity: 0.3,
         });
 
         const base = new THREE.Mesh(baseGeometry, baseMaterial);
@@ -1114,11 +1120,11 @@ class Renderer {
         group.add(base);
 
         const barMaterial = new THREE.MeshStandardMaterial({
-            color: 0x666666,
+            color: 0xba68c8,
             metalness: 0.6,
             roughness: 0.3,
-            emissive: 0x1a1a1a,
-            emissiveIntensity: 0.2,
+            emissive: 0x9c27b0,
+            emissiveIntensity: 0.3,
         });
 
         const barCount = 4;
@@ -1131,6 +1137,76 @@ class Renderer {
             bar.position.set(offset, baseHeight * 0.55, tileSize * 0.46);
             group.add(bar);
         }
+
+        group.position.set(x, 0, y);
+        return group;
+    }
+
+    /**
+     * Create cafe mesh with yellow building and window details
+     * @param {number} x - Tile X coordinate
+     * @param {number} y - Tile Y coordinate
+     * @param {number} tileSize - Tile size
+     * @returns {THREE.Group} Cafe mesh group
+     */
+    createCafeMesh(x, y, tileSize) {
+        const group = new THREE.Group();
+
+        const baseHeight = tileSize * 0.8;
+        const baseGeometry = new THREE.BoxGeometry(tileSize * 0.85, baseHeight, tileSize * 0.85);
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffd43b,
+            metalness: 0.1,
+            roughness: 0.5,
+            emissive: 0xffc107,
+            emissiveIntensity: 0.2,
+        });
+
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        base.position.set(0, baseHeight / 2, 0);
+        base.castShadow = true;
+        base.receiveShadow = true;
+        group.add(base);
+
+        // Add window details
+        const windowMaterial = new THREE.MeshStandardMaterial({
+            color: 0x87ceeb,
+            metalness: 0.7,
+            roughness: 0.2,
+            emissive: 0x4099ff,
+            emissiveIntensity: 0.3,
+        });
+
+        const windowSize = tileSize * 0.15;
+        const windowPositions = [
+            { x: -0.2, z: 0.42 },
+            { x: 0.2, z: 0.42 },
+            { x: -0.2, z: -0.42 },
+            { x: 0.2, z: -0.42 },
+        ];
+
+        for (const pos of windowPositions) {
+            const window = new THREE.Mesh(
+                new THREE.BoxGeometry(windowSize, windowSize, windowSize * 0.1),
+                windowMaterial
+            );
+            window.position.set(pos.x, baseHeight * 0.6, pos.z);
+            group.add(window);
+        }
+
+        // Add roof accent
+        const roofMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff8c00,
+            metalness: 0.2,
+            roughness: 0.6,
+            emissive: 0xff6b00,
+            emissiveIntensity: 0.15,
+        });
+
+        const roofGeometry = new THREE.BoxGeometry(tileSize * 0.9, tileSize * 0.1, tileSize * 0.9);
+        const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+        roof.position.set(0, baseHeight + tileSize * 0.05, 0);
+        group.add(roof);
 
         group.position.set(x, 0, y);
         return group;
@@ -1492,6 +1568,7 @@ class Renderer {
 
     /**
      * Update home/task/office highlights for player
+     * Also shows injury hospital glow, criminal jail glow, and cafe task glow
      * @param {Agent|null} player
      */
     updateObjectiveHighlights(player) {
@@ -1500,28 +1577,73 @@ class Renderer {
             return;
         }
 
+        // Create home highlight (green)
         if (!this.objectiveHighlightMeshes.home) {
             this.objectiveHighlightMeshes.home = this.createObjectiveHighlightMesh(0x51cf66);
         }
-        if (!this.objectiveHighlightMeshes.task) {
-            this.objectiveHighlightMeshes.task = this.createObjectiveHighlightMesh(0xffd43b);
-        }
+        this.objectiveHighlightMeshes.home.position.set(player.homeLocation.x, 0.02, player.homeLocation.y);
+        this.objectiveHighlightMeshes.home.visible = true;
+
+        // Create office highlight (blue)
         if (!this.objectiveHighlightMeshes.office) {
             this.objectiveHighlightMeshes.office = this.createObjectiveHighlightMesh(0x4da6ff);
         }
-
-        this.objectiveHighlightMeshes.home.position.set(player.homeLocation.x, 0.02, player.homeLocation.y);
         this.objectiveHighlightMeshes.office.position.set(player.jobLocation.x, 0.02, player.jobLocation.y);
+        this.objectiveHighlightMeshes.office.visible = true;
 
+        // Handle active task highlight (yellow) or cafe highlight if available
         const activeTask = player.tasksQueue
             ? player.tasksQueue.find(task => !task.completed)
             : null;
 
+        // Create cafe highlight (yellow) - shows when agent has cafe task
+        if (!this.objectiveHighlightMeshes.cafe) {
+            this.objectiveHighlightMeshes.cafe = this.createObjectiveHighlightMesh(0xffd43b);
+        }
+        if (!this.objectiveHighlightMeshes.task) {
+            this.objectiveHighlightMeshes.task = this.createObjectiveHighlightMesh(0xffd43b);
+        }
+
+        // Determine which task highlight to show
         if (activeTask && activeTask.location) {
-            this.objectiveHighlightMeshes.task.visible = true;
-            this.objectiveHighlightMeshes.task.position.set(activeTask.location.x, 0.02, activeTask.location.y);
+            const isCafeTask = activeTask.type === 'CAFE';
+            
+            if (isCafeTask) {
+                // Show cafe glow at cafe location
+                this.objectiveHighlightMeshes.cafe.visible = true;
+                this.objectiveHighlightMeshes.cafe.position.set(activeTask.location.x, 0.02, activeTask.location.y);
+                this.objectiveHighlightMeshes.task.visible = false;
+            } else {
+                // Show generic task glow at task location
+                this.objectiveHighlightMeshes.task.visible = true;
+                this.objectiveHighlightMeshes.task.position.set(activeTask.location.x, 0.02, activeTask.location.y);
+                this.objectiveHighlightMeshes.cafe.visible = false;
+            }
         } else {
             this.objectiveHighlightMeshes.task.visible = false;
+            this.objectiveHighlightMeshes.cafe.visible = false;
+        }
+
+        // Create injury hospital glow (white) - shows when agent is injured
+        if (!this.objectiveHighlightMeshes.injury) {
+            this.objectiveHighlightMeshes.injury = this.createObjectiveHighlightMesh(0xffffff);
+        }
+        if (player.isInjured && player.hospitalLocation) {
+            this.objectiveHighlightMeshes.injury.visible = true;
+            this.objectiveHighlightMeshes.injury.position.set(player.hospitalLocation.x, 0.02, player.hospitalLocation.y);
+        } else {
+            this.objectiveHighlightMeshes.injury.visible = false;
+        }
+
+        // Create criminal jail glow (purple) - shows when agent is criminal
+        if (!this.objectiveHighlightMeshes.criminal) {
+            this.objectiveHighlightMeshes.criminal = this.createObjectiveHighlightMesh(0xba68c8);
+        }
+        if (player.isCriminal && player.jailLocation) {
+            this.objectiveHighlightMeshes.criminal.visible = true;
+            this.objectiveHighlightMeshes.criminal.position.set(player.jailLocation.x, 0.02, player.jailLocation.y);
+        } else {
+            this.objectiveHighlightMeshes.criminal.visible = false;
         }
     }
 
