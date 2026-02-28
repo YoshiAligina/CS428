@@ -508,6 +508,45 @@ class Game {
             return false;
         }
 
+        const isAtJailLocation = player.jailTaskLocation &&
+            player.currentLocation.x === player.jailTaskLocation.x &&
+            player.currentLocation.y === player.jailTaskLocation.y;
+        if (!player.isInJail && player.mustVisitJail && isAtJailLocation && player.jailSentence > 0) {
+            player.isInJail = true;
+        }
+
+        if (player.isInJail && player.jailSentence > 0) {
+            player.serveJailTime();
+            player.decrementTurns();
+            this.turnManager.executeTurn();
+            this.refreshAfterPlayerTurn();
+
+            if (player.jailSentence > 0) {
+                this.setMovementDebug(`In jail: ${player.jailSentence} turn(s) remaining | Turn ${this.turnManager.currentTurn}`);
+            } else {
+                this.setMovementDebug(`Released from jail | Turn ${this.turnManager.currentTurn}`);
+            }
+            return false;
+        }
+
+        if (player.healingTurnsRemaining && player.healingTurnsRemaining > 0) {
+            player.healingTurnsRemaining--;
+            if (player.healingTurnsRemaining === 0) {
+                player.recalculatePath(this.board);
+            }
+
+            player.decrementTurns();
+            this.turnManager.executeTurn();
+            this.refreshAfterPlayerTurn();
+
+            if (player.healingTurnsRemaining > 0) {
+                this.setMovementDebug(`Recovering in hospital: ${player.healingTurnsRemaining} turn(s) remaining | Turn ${this.turnManager.currentTurn}`);
+            } else {
+                this.setMovementDebug(`Recovered from hospital stay | Turn ${this.turnManager.currentTurn}`);
+            }
+            return false;
+        }
+
         const targetX = player.currentLocation.x + dx;
         const targetY = player.currentLocation.y + dy;
         if (targetX < 0 || targetY < 0 || targetX >= this.board.width || targetY >= this.board.height) {
@@ -541,9 +580,28 @@ class Game {
         }
 
         player.checkArrival(this.board);
+
+        if (player.isInJail && player.jailSentence > 0) {
+            player.serveJailTime();
+            if (player.jailSentence === 0) {
+                player.recalculatePath(this.board);
+            }
+        }
+
         player.decrementTurns();
 
         this.turnManager.executeTurn();
+
+        this.refreshAfterPlayerTurn();
+
+        this.setMovementDebug(`Moved to (${targetX}, ${targetY}) | Turn ${this.turnManager.currentTurn}`);
+        return true;
+    }
+
+    /**
+     * Refresh renderer and UI after a player turn advances
+     */
+    refreshAfterPlayerTurn() {
 
         if (this.renderer) {
             this.renderer.updateAgents(this.agents);
@@ -565,9 +623,6 @@ class Game {
                 this.uiController.updateGameStatus('playing');
             }
         }
-
-        this.setMovementDebug(`Moved to (${targetX}, ${targetY}) | Turn ${this.turnManager.currentTurn}`);
-        return true;
     }
 
     /**
