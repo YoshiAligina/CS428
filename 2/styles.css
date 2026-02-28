@@ -1204,6 +1204,88 @@ button:disabled {
 }
 
 /* ========================================
+   MAP COMPASS
+   ======================================== */
+#mapCompass {
+    position: absolute;
+    left: 50%;
+    bottom: 92px;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.88);
+    border: 2px solid #4da6ff;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
+    z-index: 120;
+}
+
+.compass-marker {
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ff6b6b;
+    font-size: 15px;
+    font-weight: 700;
+    text-shadow: 0 0 6px rgba(255, 107, 107, 0.8);
+    pointer-events: none;
+}
+
+#compassDial {
+    position: absolute;
+    inset: 10px;
+    border-radius: 50%;
+    border: 1px dashed rgba(77, 166, 255, 0.55);
+    transition: transform 0.1s linear;
+    will-change: transform;
+}
+
+.compass-dir {
+    position: absolute;
+    font-size: 13px;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: #cde9ff;
+    text-shadow: 0 0 6px rgba(77, 166, 255, 0.45);
+}
+
+.compass-dir.north {
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.compass-dir.east {
+    right: -7px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.compass-dir.south {
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.compass-dir.west {
+    left: -7px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#compassReading {
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    color: #9ed0ff;
+    white-space: nowrap;
+}
+
+/* ========================================
    TOOLTIPS
    ======================================== */
 .tooltip {
@@ -1317,6 +1399,20 @@ button:disabled {
         left: 10px;
         width: 180px;
         font-size: 11px;
+    }
+
+    #mapCompass {
+        width: 96px;
+        height: 96px;
+        bottom: 66px;
+        right: 10px;
+        left: auto;
+        transform: none;
+    }
+
+    #compassReading {
+        font-size: 10px;
+        bottom: 7px;
     }
 
     .legend-item {
