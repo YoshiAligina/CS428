@@ -85,7 +85,16 @@ class Tile {
     }
 
     /**
-     * Determine if a tile type is walkable by agents
+     * Determine if a tile type is walkable by agents.  Note that many
+     * "building" tiles such as HOME/OFFICE/CAFE, etc. are considered
+     * walkable so that an agent can occupy them when they reach the destination.
+     * However, walkability alone does **not** permit an agent to move through a
+     * building arbitrarily. The pathfinding logic (see Utils.getWalkableNeighbors)
+     * enforces additional restrictions: buildings can only be entered if they are
+     * the target of the path and entry is from a road or intersection.  This
+     * prevents cutting through structures or moving directly from one building to
+     * another.
+     *
      * @param {string} type - Tile type to check
      * @returns {boolean} True if agents can walk on this tile
      */

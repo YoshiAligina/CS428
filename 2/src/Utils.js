@@ -234,7 +234,7 @@ const Utils = {
             const [currentX, currentY] = current.split(',').map(Number);
 
             // Check all walkable neighbors
-            const neighbors = this.getWalkableNeighbors(board, currentX, currentY);
+            const neighbors = this.getWalkableNeighbors(board, currentX, currentY, goal);
 
             for (let neighbor of neighbors) {
                 const neighborKey = `${neighbor.x},${neighbor.y}`;
@@ -304,39 +304,75 @@ const Utils = {
      * 
      * Returns all adjacent tiles that are:
      * - Within board bounds
-     * - ROAD or INTERSECTION type
+     * - ROAD or INTERSECTION type (these can always be traversed)
+     * - A building/special tile **only if** it is the final goal and entry is from a road
      * - Not blocked
-     * - Walkable
+     * 
+     * This enforces the rule that agents cannot cut through buildings or move
+     * directly from one building to another. A building tile is added only when
+     * it is the target of the path and the current tile is a road or
+     * intersection.  Without this check, the A* search could step into a building
+     * simply because it was marked as walkable (HOME/OFFICE/etc) or because it
+     * happened to be the goal while standing inside another building.
      * 
      * @param {Board} board - The game board
      * @param {Number} x - Current X coordinate
      * @param {Number} y - Current Y coordinate
      * @returns {Array} Array of {x, y} neighbor positions
      */
-    getWalkableNeighbors(board, x, y) {
+    getWalkableNeighbors(board, x, y, goal) {
         const neighbors = [];
         const directions = [
-            { x: 0, y: -1 },  // N
-            { x: 1, y: 0 },   // E
-            { x: 0, y: 1 },   // S
-            { x: -1, y: 0 },  // W
+            { x: 0, y: -1 },
+            { x: 1, y: 0 },
+            { x: 0, y: 1 },
+            { x: -1, y: 0 },
         ];
+
+        // helper for identifying building/special tile types
+        const isBuildingType = (type) => {
+            const btypes = [
+                Tile.TYPES.HOME,
+                Tile.TYPES.OFFICE,
+                Tile.TYPES.CAFE,
+                Tile.TYPES.LANDMARK,
+                Tile.TYPES.HOSPITAL,
+                Tile.TYPES.JAIL,
+            ];
+            return btypes.includes(type);
+        };
+
+        // determine if current tile is a road/intersection (needed for building entry)
+        const currentTile = board.getTile(x, y);
+        const currentIsRoad = currentTile &&
+            (currentTile.type === Tile.TYPES.ROAD || currentTile.type === Tile.TYPES.INTERSECTION);
 
         for (let dir of directions) {
             const nx = x + dir.x;
             const ny = y + dir.y;
 
-            // Check bounds
-            if (!board.isValidPosition(nx, ny)) {
+            if (!board.isValidPosition(nx, ny)) continue;
+
+            const tile = board.getTile(nx, ny);
+            if (!tile || tile.isBlocked) continue;
+
+            const isGoal = goal && nx === goal.x && ny === goal.y;
+
+            // road/intersection can always be used
+            if (tile.type === Tile.TYPES.ROAD || tile.type === Tile.TYPES.INTERSECTION) {
+                neighbors.push({ x: nx, y: ny });
                 continue;
             }
 
-            const tile = board.getTile(nx, ny);
-
-            // Check if tile is walkable (including all tile types that have isWalkable: true)
-            if (tile && tile.isWalkable && !tile.isBlocked) {
+            // allow entering a building/special tile only if it's the goal **and**
+            // the current tile is a road or intersection.  This prevents the
+            // algorithm from stepping directly between building tiles.  The
+            // `currentIsRoad` flag was previously removed but is now required
+            // again per the latest rule set.
+            if (isGoal && isBuildingType(tile.type) && currentIsRoad) {
                 neighbors.push({ x: nx, y: ny });
             }
+            // otherwise ignore non-road tiles entirely
         }
 
         return neighbors;

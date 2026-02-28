@@ -154,7 +154,12 @@ class Agent {
                 return false;
             }
 
-            // Use A* pathfinding to find path
+            // Use A* pathfinding to find path.  The pathfinder has been
+            // updated to enforce that buildings cannot be entered or traversed
+            // unless they are the final destination **and** the entry comes from
+            // a road tile.  This means agents will now exit a building to the
+            // street before heading toward another building, even if the target
+            // is adjacent.
             const path = Utils.findPath(board, this.currentLocation, destination);
 
             // Check if path was found

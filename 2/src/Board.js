@@ -111,9 +111,15 @@ class Board {
             const row = [];
 
             for (let x = 0; x < this.width; x++) {
-                // Create tile with BUILDING as default type
+                // Create tile with BUILDING as default type.  These generic
+                // structures should never be walkable; the pathfinding and player
+                // movement logic will allow entry only into special locations when
+                // they are the active goal.  We still call determineWalkability for
+                // consistency, then override to false here to avoid any runtime
+                // confusion.
                 const tile = new Tile(x, y, Tile.TYPES.BUILDING);
                 tile.height = 2;  // Buildings have height
+                tile.isWalkable = false; // explicitly ensure generic buildings block movement
                 row.push(tile);
             }
 
@@ -760,6 +766,10 @@ class Board {
      * @returns {Array} Array of Tile objects
      */
     getNeighbors(x, y) {
+        // Similar rules to pathfinding: roads/intersections are always valid
+        // neighbors. Special building tiles are only considered if we are on a
+        // road/intersection. This prevents the player/AI from stepping directly
+        // between buildings or cutting through one.
         const neighbors = [];
         const directions = [
             { dx: -1, dy: 0 },
@@ -768,12 +778,37 @@ class Board {
             { dx: 0, dy: 1 },
         ];
 
+        const currentTile = this.getTile(x, y);
+        const currentIsRoad = currentTile &&
+            (currentTile.type === Tile.TYPES.ROAD || currentTile.type === Tile.TYPES.INTERSECTION);
+
+        const isBuildingType = (type) => {
+            const btypes = [
+                Tile.TYPES.HOME,
+                Tile.TYPES.OFFICE,
+                Tile.TYPES.CAFE,
+                Tile.TYPES.LANDMARK,
+                Tile.TYPES.HOSPITAL,
+                Tile.TYPES.JAIL,
+            ];
+            return btypes.includes(type);
+        };
+
         for (const dir of directions) {
             const nx = x + dir.dx;
             const ny = y + dir.dy;
             const tile = this.getTile(nx, ny);
 
-            if (tile && tile.isPassable()) {
+            if (!tile || tile.isBlocked) continue;
+
+            // Always allow roads/intersections if passable
+            if ((tile.type === Tile.TYPES.ROAD || tile.type === Tile.TYPES.INTERSECTION) && tile.isPassable()) {
+                neighbors.push(tile);
+                continue;
+            }
+
+            // Allow entering a building from a road only
+            if (currentIsRoad && isBuildingType(tile.type) && tile.isWalkable) {
                 neighbors.push(tile);
             }
         }
