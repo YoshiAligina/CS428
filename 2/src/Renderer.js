@@ -1516,39 +1516,69 @@ class Renderer {
     }
 
     /**
-     * Create objective highlight mesh (ring + beacon)
+     * Create objective highlight mesh (square glow gradient rising upward)
      * @param {number} color - Hex color
      * @returns {THREE.Group}
      */
     createObjectiveHighlightMesh(color) {
         const group = new THREE.Group();
+        const layers = [];
 
-        const ring = new THREE.Mesh(
-            new THREE.TorusGeometry(0.45, 0.06, 12, 24),
+        const baseGlow = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.98, 0.98),
             new THREE.MeshStandardMaterial({
                 color,
                 emissive: color,
                 emissiveIntensity: 0.8,
                 transparent: true,
-                opacity: 0.85,
+                opacity: 0.22,
+                side: THREE.DoubleSide,
             })
         );
-        ring.rotation.x = Math.PI / 2;
-        ring.position.y = 0.08;
+        baseGlow.rotation.x = -Math.PI / 2;
+        baseGlow.position.y = 0.02;
+        group.add(baseGlow);
 
-        const beacon = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.05, 0.05, 0.7, 10),
-            new THREE.MeshStandardMaterial({
+        const layerCount = 5;
+        for (let i = 0; i < layerCount; i++) {
+            const height = 0.08 + i * 0.13;
+            const size = 0.9 + i * 0.11;
+            const opacity = 0.65 - i * 0.11;
+            const thickness = 0.04;
+
+            const layer = new THREE.Group();
+
+            const horizontalGeom = new THREE.BoxGeometry(size, thickness, thickness);
+            const verticalGeom = new THREE.BoxGeometry(thickness, thickness, size);
+            const layerMaterial = new THREE.MeshStandardMaterial({
                 color,
                 emissive: color,
-                emissiveIntensity: 0.6,
+                emissiveIntensity: 0.85,
                 transparent: true,
-                opacity: 0.7,
-            })
-        );
-        beacon.position.y = 0.45;
+                opacity: Math.max(opacity, 0.08),
+            });
 
-        group.add(ring, beacon);
+            const topBar = new THREE.Mesh(horizontalGeom, layerMaterial.clone());
+            const bottomBar = new THREE.Mesh(horizontalGeom, layerMaterial.clone());
+            const leftBar = new THREE.Mesh(verticalGeom, layerMaterial.clone());
+            const rightBar = new THREE.Mesh(verticalGeom, layerMaterial.clone());
+
+            topBar.position.set(0, 0, size / 2);
+            bottomBar.position.set(0, 0, -size / 2);
+            leftBar.position.set(-size / 2, 0, 0);
+            rightBar.position.set(size / 2, 0, 0);
+
+            layer.position.y = height;
+            layer.add(topBar, bottomBar, leftBar, rightBar);
+            group.add(layer);
+            layers.push(layer);
+        }
+
+        group.userData.objectiveGlow = {
+            layers,
+            baseGlow,
+        };
+
         this.scene.add(group);
         return group;
     }
@@ -2110,6 +2140,33 @@ class Renderer {
             const pulseScale = 1.0 + pulse * 0.25;
             icon.scale.set(0.35 * pulseScale, 0.35 * pulseScale, 1);
             icon.material.opacity = 0.8 + pulse * 0.2;
+        });
+
+        Object.values(this.objectiveHighlightMeshes).forEach((highlight, index) => {
+            if (!highlight || !highlight.visible || !highlight.userData.objectiveGlow) {
+                return;
+            }
+
+            const shimmer = Math.sin(time * 2.4 + index * 0.6) * 0.5 + 0.5;
+            const scale = 1.0 + shimmer * 0.04;
+            highlight.scale.set(scale, 1.0, scale);
+
+            const { layers, baseGlow } = highlight.userData.objectiveGlow;
+            if (baseGlow && baseGlow.material) {
+                baseGlow.material.opacity = 0.16 + shimmer * 0.18;
+            }
+
+            layers.forEach((layer, layerIndex) => {
+                const layerFade = 1 - (layerIndex / Math.max(layers.length, 1));
+                const layerPulse = 0.4 + shimmer * 0.6;
+
+                layer.children.forEach((bar) => {
+                    if (bar.material) {
+                        bar.material.opacity = Math.max(0.06, layerFade * layerPulse * 0.75);
+                        bar.material.emissiveIntensity = 0.45 + layerPulse * 0.5;
+                    }
+                });
+            });
         });
     }
 
