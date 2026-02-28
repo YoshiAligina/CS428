@@ -29,6 +29,7 @@ class Agent {
         HOSPITAL: 'HOSPITAL',
         JAIL: 'JAIL',
         LANDMARK: 'LANDMARK',
+        JOB: 'JOB',
     };
 
     /**
@@ -439,6 +440,16 @@ class Agent {
                 this.arrivedAtJob = true;
                 this.status = Agent.STATUS.ARRIVED;
                 console.log(`Agent ${this.id} successfully reached job after completing all tasks!`);
+                
+                // Add job completion as a task
+                const jobTask = {
+                    type: Agent.TASK_TYPE.JOB,
+                    location: { ...this.jobLocation },
+                    completed: true,
+                    addedAtTurn: this.turnsElapsed,
+                };
+                this.completedTasks.push(jobTask);
+                
                 arrived = true;
             } else {
                 // Agent reached job but can't succeed - log why
