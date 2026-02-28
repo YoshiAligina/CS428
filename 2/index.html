@@ -21,9 +21,9 @@
             <div id="gameStatus" class="status-ready">Status: <span id="statusText">Ready</span></div>
         </div>
         
-    <!-- Side panel (Agent List + Enhanced Info) -->
+    <!-- Side panel (Player Status + Enhanced Info) -->
     <div id="sidePanel">
-        <h3>Agents & Status</h3>
+        <h3>Player Status</h3>
         <div id="agentList">
             <!-- Agents will be populated dynamically -->
         </div>
@@ -60,16 +60,13 @@
         
         <!-- Bottom action panel -->
         <div id="actionPanel">
-            <!-- Turn Timeline -->
-            <div id="turnTimeline" class="timeline">
-                <div class="timeline-label">Turn Progress</div>
-                <div class="timeline-bar">
-                    <div id="timelineProgress" class="timeline-progress"></div>
-                </div>
-                <div class="timeline-text">
-                    <span id="timelineElapsed">0</span> / <span id="timelineTotal">50</span> turns
-                </div>
+            <div id="moveControls" class="move-controls">
+                <button id="moveUpBtn" type="button" class="control-btn move-btn move-up" aria-label="Move up" onclick="window.game && window.game.movePlayer(0, -1)">Up</button>
+                <button id="moveLeftBtn" type="button" class="control-btn move-btn move-left" aria-label="Move left" onclick="window.game && window.game.movePlayer(-1, 0)">Left</button>
+                <button id="moveDownBtn" type="button" class="control-btn move-btn move-down" aria-label="Move down" onclick="window.game && window.game.movePlayer(0, 1)">Down</button>
+                <button id="moveRightBtn" type="button" class="control-btn move-btn move-right" aria-label="Move right" onclick="window.game && window.game.movePlayer(1, 0)">Right</button>
             </div>
+            <div id="moveDebug" class="move-debug">Move debug: waiting for input</div>
             
             <button id="endTurnBtn" class="primary-btn">End Turn</button>
             <button id="autoplayBtn" class="control-btn">
@@ -140,7 +137,7 @@
                     <span id="tileBlocked">No</span>
                 </div>
                 <div class="inspector-row">
-                    <span class="label">Agents:</span>
+                    <span class="label">Player:</span>
                     <div id="tileAgents">None</div>
                 </div>
             </div>
@@ -156,11 +153,11 @@
                         <span id="gameOverTurns" class="stat-value">0</span>
                     </div>
                     <div class="stat-row">
-                        <span class="stat-label">Agents Succeeded</span>
+                        <span class="stat-label">Player Succeeded</span>
                         <span id="gameOverSuccess" class="stat-value">0</span>
                     </div>
                     <div class="stat-row">
-                        <span class="stat-label">Agents Failed</span>
+                        <span class="stat-label">Player Failed</span>
                         <span id="gameOverFail" class="stat-value">0</span>
                     </div>
                     <div class="stat-row">

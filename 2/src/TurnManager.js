@@ -282,7 +282,7 @@ class TurnManager {
         // Injury event (3% chance)
         if (Math.random() < 0.03) {
             const injuryCandidates = this.agents.filter(agent =>
-                agent.status !== Agent.STATUS.FAILED && agent.status !== Agent.STATUS.ARRIVED && !agent.isInjured
+                agent.status !== Agent.STATUS.FAILED && agent.status !== Agent.STATUS.ARRIVED && !agent.isInjured && !agent.isCommuter
             );
 
             if (injuryCandidates.length > 0) {
@@ -303,7 +303,7 @@ class TurnManager {
         // Crime event (2% chance)
         if (Math.random() < 0.02) {
             const crimeCandidates = this.agents.filter(agent =>
-                agent.status !== Agent.STATUS.FAILED && agent.status !== Agent.STATUS.ARRIVED && !agent.isCriminal
+                agent.status !== Agent.STATUS.FAILED && agent.status !== Agent.STATUS.ARRIVED && !agent.isCriminal && !agent.isCommuter
             );
 
             if (crimeCandidates.length > 0) {
@@ -349,6 +349,15 @@ class TurnManager {
         }
 
         for (let agent of this.agents) {
+            if (agent.isPlayerControlled) {
+                continue;
+            }
+
+            if (agent.isCommuter) {
+                this.ensureCommuterPath(agent);
+                continue;
+            }
+
             if (agent.plannedPath.length === 0) {
                 agent.calculatePath(this.board);
             }
@@ -372,6 +381,15 @@ class TurnManager {
 
         for (let agent of this.agents) {
             if (agent.status !== Agent.STATUS.ACTIVE) {
+                continue;
+            }
+
+            if (agent.isPlayerControlled) {
+                continue;
+            }
+
+            if (agent.isCommuter) {
+                this.executeCommuterTurn(agent);
                 continue;
             }
 
@@ -476,7 +494,7 @@ class TurnManager {
         }
 
         for (let agent of this.agents) {
-            if (agent.status === Agent.STATUS.ACTIVE && agent.plannedPath.length === 0) {
+            if (!agent.isPlayerControlled && !agent.isCommuter && agent.status === Agent.STATUS.ACTIVE && agent.plannedPath.length === 0) {
                 const recalculated = agent.calculatePath(this.board);
                 if (!recalculated) {
                     agent.status = Agent.STATUS.FAILED;
@@ -507,8 +525,12 @@ class TurnManager {
             return;
         }
 
-        const allCompleted = this.agents.every(a => a.completed);
-        if (allCompleted) {
+        const relevantAgents = this.agents.filter(agent => !agent.isCommuter);
+        const allArrived = relevantAgents.length > 0 && relevantAgents.every(agent =>
+            agent.status === Agent.STATUS.ARRIVED || agent.arrivedAtJob === true
+        );
+
+        if (allArrived) {
             this.endGame();
         }
     }
@@ -549,16 +571,85 @@ class TurnManager {
      * @returns {Object} Stats summary
      */
     getGameStats() {
-        const completed = this.agents.filter(a => a.completed).length;
-        const avgTurns = this.agents.reduce((sum, a) => sum + a.turnsRemaining, 0) / this.agents.length;
+        const relevantAgents = this.agents.filter(agent => !agent.isCommuter);
+        const completed = relevantAgents.filter(agent =>
+            agent.status === Agent.STATUS.ARRIVED || agent.arrivedAtJob === true
+        ).length;
+        const avgTurns = relevantAgents.length > 0
+            ? relevantAgents.reduce((sum, a) => sum + a.turnsRemaining, 0) / relevantAgents.length
+            : 0;
 
         return {
             turn: this.currentTurn,
             maxTurns: this.config.maxTurns,
             agentsCompleted: completed,
-            totalAgents: this.agents.length,
+            totalAgents: relevantAgents.length,
             avgTurnsRemaining: avgTurns,
         };
+    }
+
+    /**
+     * Ensure commuter has an active path to current commute stop
+     * @param {Agent} agent
+     */
+    ensureCommuterPath(agent) {
+        if (!agent || !agent.commuterStops || agent.commuterStops.length < 2) {
+            return;
+        }
+
+        if (typeof agent.commuterTargetIndex !== 'number') {
+            agent.commuterTargetIndex = 1;
+        }
+
+        const target = agent.commuterStops[agent.commuterTargetIndex];
+        if (!target) {
+            return;
+        }
+
+        if (agent.currentLocation.x === target.x && agent.currentLocation.y === target.y) {
+            agent.commuterTargetIndex = (agent.commuterTargetIndex + 1) % agent.commuterStops.length;
+        }
+
+        if (agent.plannedPath.length > 0 && agent.pathIndex < agent.plannedPath.length) {
+            return;
+        }
+
+        const nextTarget = agent.commuterStops[agent.commuterTargetIndex];
+        const path = Utils.findPath(this.board, agent.currentLocation, nextTarget);
+
+        if (Array.isArray(path) && path.length > 1) {
+            agent.setPath(path.slice(1));
+        } else {
+            agent.plannedPath = [];
+            agent.pathIndex = 0;
+        }
+    }
+
+    /**
+     * Execute one step of commuter movement on repeatable route
+     * @param {Agent} agent
+     */
+    executeCommuterTurn(agent) {
+        this.ensureCommuterPath(agent);
+
+        if (agent.plannedPath.length > 0 && agent.pathIndex < agent.plannedPath.length) {
+            agent.moveOneStep();
+        }
+
+        const currentTile = this.board.getTile(agent.currentLocation.x, agent.currentLocation.y);
+        if (currentTile && currentTile.increaseCongestion) {
+            currentTile.increaseCongestion();
+        }
+
+        const target = agent.commuterStops[agent.commuterTargetIndex];
+        if (target && agent.currentLocation.x === target.x && agent.currentLocation.y === target.y) {
+            agent.commuterTargetIndex = (agent.commuterTargetIndex + 1) % agent.commuterStops.length;
+            agent.plannedPath = [];
+            agent.pathIndex = 0;
+        }
+
+        agent.status = Agent.STATUS.ACTIVE;
+        agent.arrivedAtJob = false;
     }
 
     /**

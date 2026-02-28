@@ -311,13 +311,19 @@ class InputManager {
     onKeyDown(event) {
         this.keys[event.key] = true;
 
+        const key = (event.key || '').toLowerCase();
+        const movementKeys = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
+        if (movementKeys.includes(key)) {
+            event.preventDefault();
+        }
+
         // Handle debug mode keys
         if (this.debugMode) {
             this.debugMode.handleKeyPress(event.key);
         }
 
         // Emit key events
-        this.emit('keyDown', { key: event.key });
+        this.emit('keyDown', { key: event.key, repeat: event.repeat === true });
 
         // Spacebar
         if (event.key === ' ') {

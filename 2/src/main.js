@@ -41,14 +41,22 @@ class Game {
         this.config = {
             boardWidth: constants.GRID_SIZE,
             boardHeight: constants.GRID_SIZE,
-            numAgents: 4,
+            numAgents: 1,
+            minNpcAgents: 3,
+            maxNpcAgents: 4,
             maxTurns: constants.TURN_LIMIT,
-            agentColors: ['#ff6b6b', '#51cf66', '#4da6ff', '#ffd43b'],
+            agentColors: ['#4da6ff'],
+            npcColors: ['#ff8c42', '#ffd166', '#8ecae6', '#c77dff'],
         };
 
         // State
         this.isRunning = false;
         this.animationFrameId = null;
+        this.keydownListener = null;
+        this.keyupListener = null;
+        this.pressedKeys = new Set();
+        this.lastMovementAt = 0;
+        this.movementCooldownMs = 120;
 
     }
 
@@ -97,6 +105,11 @@ class Game {
                 this.uiController.updateSpecialAgentStatus();
             }
 
+            const player = this.agents[0];
+            if (player) {
+                this.setMovementDebug(`Ready at (${player.currentLocation.x}, ${player.currentLocation.y})`);
+            }
+
             // Step 10: Begin animation loop
             this.startAnimationLoop();
 
@@ -131,27 +144,81 @@ class Game {
 
         this.agents = [];
 
-        for (let i = 0; i < this.config.numAgents; i++) {
-            // Use modulo to allow reusing locations if needed
-            const home = homes[i % homes.length];
-            const office = offices[i % offices.length];
-            const color = this.config.agentColors[i % this.config.agentColors.length];
+        // Spawn player
+        const playerHome = homes[0];
+        const playerOffice = offices[0];
+        const player = new Agent(
+            'player_1',
+            { x: playerHome.x, y: playerHome.y },
+            { x: playerOffice.x, y: playerOffice.y },
+            this.config.agentColors[0],
+            this.board
+        );
 
-            const agent = new Agent(
-                `agent_${i + 1}`,
+        player.isPlayerControlled = true;
+        player.name = 'Player';
+        player.plannedPath = [];
+        player.pathIndex = 0;
+        player.maxTurns = this.config.maxTurns;
+        player.turnsRemaining = this.config.maxTurns;
+        this.agents.push(player);
+
+        // Spawn 3-4 commuter NPCs
+        const npcCount = this.config.minNpcAgents + Math.floor(Math.random() * (this.config.maxNpcAgents - this.config.minNpcAgents + 1));
+        for (let index = 0; index < npcCount; index++) {
+            const home = homes[(index + 1) % homes.length];
+            const office = offices[(index + 1) % offices.length];
+            const color = this.config.npcColors[index % this.config.npcColors.length];
+
+            const npc = new Agent(
+                `npc_${index + 1}`,
                 { x: home.x, y: home.y },
                 { x: office.x, y: office.y },
                 color,
-                this.board  // Pass board for initial pathfinding
+                this.board
             );
 
-            // Set max turns
-            agent.maxTurns = this.config.maxTurns;
-            agent.turnsRemaining = this.config.maxTurns;
+            const waypoint = this.pickNpcWaypoint(home, office);
+            npc.isNpc = true;
+            npc.isCommuter = true;
+            npc.name = `Commuter ${index + 1}`;
+            npc.commuterStops = [
+                { x: home.x, y: home.y },
+                { x: waypoint.x, y: waypoint.y },
+                { x: office.x, y: office.y },
+            ];
+            npc.commuterTargetIndex = 1;
+            npc.plannedPath = [];
+            npc.pathIndex = 0;
+            npc.maxTurns = Number.MAX_SAFE_INTEGER;
+            npc.turnsRemaining = Number.MAX_SAFE_INTEGER;
 
-            this.agents.push(agent);
+            this.agents.push(npc);
         }
 
+    }
+
+    /**
+     * Pick a repeatable commute waypoint for NPC between home and office
+     * @param {{x:number,y:number}} home
+     * @param {{x:number,y:number}} office
+     * @returns {{x:number,y:number}}
+     */
+    pickNpcWaypoint(home, office) {
+        const roadCandidates = Array.from(this.board.roadTiles || []).map((key) => {
+            const [x, y] = key.split(',').map(Number);
+            return { x, y };
+        }).filter((pos) => {
+            const isHome = pos.x === home.x && pos.y === home.y;
+            const isOffice = pos.x === office.x && pos.y === office.y;
+            return !isHome && !isOffice;
+        });
+
+        if (roadCandidates.length === 0) {
+            return { x: office.x, y: office.y };
+        }
+
+        return roadCandidates[Math.floor(Math.random() * roadCandidates.length)];
     }
 
     /**
@@ -176,9 +243,6 @@ class Game {
         }
 
         this.renderer = new Renderer(canvas, this.board, this.agents);
-        this.renderer.init();
-        this.renderer.createBoard(this.board);
-        this.renderer.createAgents(this.agents);
 
         // Make renderer globally available for UIController
         window.gameRenderer = this.renderer;
@@ -201,7 +265,6 @@ class Game {
      */
     initializeInputManager() {
         this.inputManager = new InputManager(this.renderer, this.board, this.debugMode || null);
-        this.inputManager.init();
         
         // Make globally available for UIController
         window.gameInputManager = this.inputManager;
@@ -234,6 +297,32 @@ class Game {
         this.inputManager.on('tileHover', (data) => {
             // Optional: could update UI with hover info
         });
+
+        // Global keyboard fallback to ensure movement works even if other handlers intercept keys
+        if (!this.keydownListener) {
+            this.keydownListener = (event) => {
+                const key = this.normalizeMovementKey(event);
+                if (key) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.pressedKeys.add(key);
+                    this.handlePlayerMovementInput(key, event.repeat === true);
+                }
+            };
+            window.addEventListener('keydown', this.keydownListener, { capture: true, passive: false });
+        }
+
+        if (!this.keyupListener) {
+            this.keyupListener = (event) => {
+                const key = this.normalizeMovementKey(event);
+                if (key) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.pressedKeys.delete(key);
+                }
+            };
+            window.addEventListener('keyup', this.keyupListener, { capture: true, passive: false });
+        }
 
         // TurnManager → UI updates (turn events)
         this.turnManager.on('turnExecuted', (data) => {
@@ -272,6 +361,9 @@ class Game {
     update() {
         if (!this.isRunning) return;
 
+        // Poll movement keys each frame for reliable controls
+        this.processMovementFromPressedKeys();
+
         // Update input manager (hover detection)
         if (this.inputManager && this.inputManager.update) {
             this.inputManager.update();
@@ -285,6 +377,71 @@ class Game {
         // Render the scene
         if (this.renderer) {
             this.renderer.render();
+        }
+    }
+
+    /**
+     * Normalize keyboard event into movement key token
+     * @param {KeyboardEvent} event
+     * @returns {string|null}
+     */
+    normalizeMovementKey(event) {
+        const key = (event.key || '').toLowerCase();
+        const keyCode = typeof event.keyCode === 'number' ? event.keyCode : null;
+
+        if (key === 'arrowup' || keyCode === 38) return 'arrowup';
+        if (key === 'arrowdown' || keyCode === 40) return 'arrowdown';
+        if (key === 'arrowleft' || keyCode === 37) return 'arrowleft';
+        if (key === 'arrowright' || keyCode === 39) return 'arrowright';
+        if (key === 'w' || keyCode === 87) return 'w';
+        if (key === 'a' || keyCode === 65) return 'a';
+        if (key === 's' || keyCode === 83) return 's';
+        if (key === 'd' || keyCode === 68) return 'd';
+
+        return null;
+    }
+
+    /**
+     * Process currently pressed keys and move player on cooldown
+     */
+    processMovementFromPressedKeys() {
+        if (!this.turnManager || !this.turnManager.gameRunning || this.turnManager.gameFinished) {
+            return;
+        }
+
+        const now = Date.now();
+        if (now - this.lastMovementAt < this.movementCooldownMs) {
+            return;
+        }
+
+        let move = null;
+
+        if (this.pressedKeys.has('arrowup') || this.pressedKeys.has('w')) {
+            move = { dx: 0, dy: -1 };
+        } else if (this.pressedKeys.has('arrowdown') || this.pressedKeys.has('s')) {
+            move = { dx: 0, dy: 1 };
+        } else if (this.pressedKeys.has('arrowleft') || this.pressedKeys.has('a')) {
+            move = { dx: -1, dy: 0 };
+        } else if (this.pressedKeys.has('arrowright') || this.pressedKeys.has('d')) {
+            move = { dx: 1, dy: 0 };
+        }
+
+        if (!move) {
+            return;
+        }
+
+        this.lastMovementAt = now;
+        this.movePlayer(move.dx, move.dy);
+    }
+
+    /**
+     * Update movement debug status in UI
+     * @param {string} message
+     */
+    setMovementDebug(message) {
+        const debugElement = document.getElementById('moveDebug');
+        if (debugElement) {
+            debugElement.textContent = `Move debug: ${message}`;
         }
     }
 
@@ -346,9 +503,125 @@ class Game {
     }
 
     /**
+     * Handle keyboard movement input for the player
+     * @param {string} key - Keyboard key
+     * @param {boolean} isRepeat - Whether this is an auto-repeated key event
+     */
+    handlePlayerMovementInput(key, isRepeat = false) {
+        const movementMap = {
+            w: { dx: 0, dy: -1 },
+            a: { dx: -1, dy: 0 },
+            s: { dx: 0, dy: 1 },
+            d: { dx: 1, dy: 0 },
+            arrowup: { dx: 0, dy: -1 },
+            arrowleft: { dx: -1, dy: 0 },
+            arrowdown: { dx: 0, dy: 1 },
+            arrowright: { dx: 1, dy: 0 },
+        };
+
+        const normalizedKey = (key || '').toLowerCase();
+        const move = movementMap[normalizedKey];
+
+        if (!move) return;
+
+        this.movePlayer(move.dx, move.dy);
+    }
+
+    /**
+     * Move player one tile if valid and advance turn state
+     * @param {number} dx - Delta x
+     * @param {number} dy - Delta y
+     */
+    movePlayer(dx, dy) {
+        if (!this.turnManager || this.turnManager.gameFinished) {
+            this.setMovementDebug('Blocked: game finished or unavailable');
+            return false;
+        }
+
+        const player = this.agents[0];
+        if (!player || player.status !== Agent.STATUS.ACTIVE) {
+            this.setMovementDebug(`Blocked: player status is ${player ? player.status : 'missing'}`);
+            return false;
+        }
+
+        const targetX = player.currentLocation.x + dx;
+        const targetY = player.currentLocation.y + dy;
+        if (targetX < 0 || targetY < 0 || targetX >= this.board.width || targetY >= this.board.height) {
+            this.setMovementDebug(`Blocked: out of bounds (${targetX}, ${targetY})`);
+            return false;
+        }
+
+        const targetTile = this.board.getTile(targetX, targetY);
+        if (!targetTile || targetTile.isBlocked) {
+            this.setMovementDebug(`Blocked: tile unavailable at (${targetX}, ${targetY})`);
+            return false;
+        }
+
+        player.currentLocation = { x: targetX, y: targetY };
+        player.plannedPath = [];
+        player.pathIndex = 0;
+        player.movementHistory.push({
+            turn: player.turnsElapsed,
+            position: { ...player.currentLocation },
+        });
+
+        if (targetTile.increaseCongestion) {
+            targetTile.increaseCongestion();
+        }
+
+        const playerMesh = this.renderer && this.renderer.agentMeshes
+            ? this.renderer.agentMeshes.get(player.id.toString())
+            : null;
+        if (playerMesh) {
+            playerMesh.position.set(player.currentLocation.x, 0.5, player.currentLocation.y);
+        }
+
+        player.checkArrival(this.board);
+        player.decrementTurns();
+
+        this.turnManager.executeTurn();
+
+        if (this.renderer) {
+            this.renderer.updateAgents(this.agents);
+            this.renderer.updateAgentPaths(this.agents);
+            this.renderer.updateTraffic(this.board);
+        }
+
+        if (this.uiController) {
+            this.uiController.updateTurnDisplay();
+            this.uiController.updateAgentList();
+            this.uiController.updateTaskChecklist();
+            this.uiController.updateStatistics();
+            this.uiController.updateTurnTimeline();
+
+            if (this.turnManager.gameFinished) {
+                this.uiController.updateGameStatus('gameover');
+                this.uiController.showGameOver();
+            } else {
+                this.uiController.updateGameStatus('playing');
+            }
+        }
+
+        this.setMovementDebug(`Moved to (${targetX}, ${targetY}) | Turn ${this.turnManager.currentTurn}`);
+        return true;
+    }
+
+    /**
      * Reset game
      */
     reset() {
+
+        if (this.keydownListener) {
+            window.removeEventListener('keydown', this.keydownListener, { capture: true });
+            this.keydownListener = null;
+        }
+
+        if (this.keyupListener) {
+            window.removeEventListener('keyup', this.keyupListener, { capture: true });
+            this.keyupListener = null;
+        }
+
+        this.pressedKeys.clear();
 
         // Stop animation loop
         if (this.animationFrameId) {

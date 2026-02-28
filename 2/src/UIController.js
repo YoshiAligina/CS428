@@ -16,6 +16,9 @@ class UIController {
         this.autoplaySpeed = 5; // 1-10 scale (multiplier for turn speed)
         this.autoplayCounter = 0;
         this.autoplayInterval = null;
+
+        // Input mode
+        this.keyboardOnlyMode = true;
     }
 
     /**
@@ -27,6 +30,7 @@ class UIController {
         this.uiElements.maxTurns = document.getElementById('maxTurns');
         this.uiElements.gameStatus = document.getElementById('gameStatus');
         this.uiElements.statusText = document.getElementById('statusText');
+        this.uiElements.specialAgentPanel = document.getElementById('specialAgentPanel');
         this.uiElements.specialAgentName = document.getElementById('specialAgentName');
         this.uiElements.specialAgentCountdown = document.getElementById('specialAgentCountdownValue');
 
@@ -42,6 +46,10 @@ class UIController {
         this.uiElements.taskChecklist = document.getElementById('taskChecklist');
         this.uiElements.statisticsPanel = document.getElementById('statisticsPanel');
         this.uiElements.turnTimeline = document.getElementById('turnTimeline');
+        this.uiElements.moveUpBtn = document.getElementById('moveUpBtn');
+        this.uiElements.moveDownBtn = document.getElementById('moveDownBtn');
+        this.uiElements.moveLeftBtn = document.getElementById('moveLeftBtn');
+        this.uiElements.moveRightBtn = document.getElementById('moveRightBtn');
         this.uiElements.mapLegend = document.getElementById('mapLegend');
         this.uiElements.timelineProgress = document.getElementById('timelineProgress');
         this.uiElements.timelineElapsed = document.getElementById('timelineElapsed');
@@ -100,6 +108,10 @@ class UIController {
         this.uiElements.placeRoadblockBtn.appendChild(counterSpan);
         this.uiElements.blockCounter = counterSpan;
 
+        if (this.keyboardOnlyMode) {
+            this.applyKeyboardOnlyMode();
+        }
+
         // Set max turns display
         const defaultMaxTurns = (typeof window !== 'undefined' && window.GAME_CONSTANTS)
             ? window.GAME_CONSTANTS.TURN_LIMIT
@@ -117,6 +129,50 @@ class UIController {
         this.updateTurnTimeline();
         this.updateGameStatus('ready');
 
+    }
+
+    /**
+     * Hide controls that are not used in keyboard-only mode
+     */
+    applyKeyboardOnlyMode() {
+        if (this.uiElements.specialAgentPanel) {
+            this.uiElements.specialAgentPanel.style.display = 'none';
+        }
+
+        if (this.uiElements.endTurnBtn) {
+            this.uiElements.endTurnBtn.style.display = 'none';
+            this.uiElements.endTurnBtn.disabled = true;
+        }
+
+        if (this.uiElements.autoplayBtn) {
+            this.uiElements.autoplayBtn.style.display = 'none';
+            this.uiElements.autoplayBtn.disabled = true;
+        }
+
+        if (this.uiElements.placeRoadblockBtn) {
+            this.uiElements.placeRoadblockBtn.style.display = 'none';
+            this.uiElements.placeRoadblockBtn.disabled = true;
+        }
+
+        if (this.uiElements.speedSlider) {
+            this.uiElements.speedSlider.disabled = true;
+        }
+
+        const speedControl = document.querySelector('.speed-control');
+        if (speedControl) {
+            speedControl.style.display = 'none';
+        }
+    }
+
+    /**
+     * Handle movement button click
+     * @param {number} dx
+     * @param {number} dy
+     */
+    onMoveButton(dx, dy) {
+        if (window.game && typeof window.game.movePlayer === 'function') {
+            window.game.movePlayer(dx, dy);
+        }
     }
 
     /**
@@ -215,11 +271,13 @@ class UIController {
         // Clear existing list
         this.uiElements.agentList.innerHTML = '';
 
-        // Create card for each agent
-        this.agents.forEach((agent, index) => {
-            const card = this.createAgentCard(agent, index);
-            this.uiElements.agentList.appendChild(card);
-        });
+        const player = this.agents[0];
+        if (!player) {
+            return;
+        }
+
+        const card = this.createAgentCard(player, 0);
+        this.uiElements.agentList.appendChild(card);
     }
 
     /**
@@ -231,6 +289,7 @@ class UIController {
     createAgentCard(agent, index) {
         const card = document.createElement('div');
         card.className = `agent-card status-${agent.status.toLowerCase()}`;
+        const displayName = agent.isPlayerControlled ? 'Player' : `Agent ${index + 1}`;
 
         // Determine status badge text and class
         let statusClass = 'active';
@@ -251,7 +310,9 @@ class UIController {
         const defaultMaxTurns = (typeof window !== 'undefined' && window.GAME_CONSTANTS)
             ? window.GAME_CONSTANTS.TURN_LIMIT
             : 18;
-        const maxTurns = this.turnManager.maxTurns || defaultMaxTurns;
+        const maxTurns = (this.turnManager && this.turnManager.config && this.turnManager.config.maxTurns)
+            ? this.turnManager.config.maxTurns
+            : defaultMaxTurns;
         const turnsUsed = maxTurns - (agent.turnsRemaining || 0);
         const progressPercent = Math.min((turnsUsed / maxTurns) * 100, 100);
         const progressClass = agent.turnsRemaining < 5 ? 'low' : '';
@@ -287,7 +348,7 @@ class UIController {
             <div class="agent-header">
                 <div class="agent-name">
                     <span class="agent-color-dot" style="background-color: ${agent.color};"></span>
-                    Agent ${index + 1}
+                    ${displayName}
                 </div>
                 <div class="agent-status-badge ${statusClass}">${statusText}</div>
             </div>
@@ -390,7 +451,8 @@ class UIController {
         } else {
             this.uiElements.tileAgents.innerHTML = agentsOnTile.map((agent, idx) => {
                 const agentIndex = this.agents.indexOf(agent) + 1;
-                return `<span class="agent-chip" style="border-color: ${agent.color};">Agent ${agentIndex}</span>`;
+                const displayName = agent.isPlayerControlled ? 'Player' : `Agent ${agentIndex}`;
+                return `<span class="agent-chip" style="border-color: ${agent.color};">${displayName}</span>`;
             }).join('');
         }
 
@@ -424,6 +486,10 @@ class UIController {
      * Handle end turn button click
      */
     onEndTurnClick() {
+        if (this.keyboardOnlyMode) {
+            return;
+        }
+
         // Check if game is running
         if (!this.turnManager.gameRunning) {
             return;
@@ -462,6 +528,10 @@ class UIController {
      * Toggle roadblock placement mode
      */
     onRoadblockToggle() {
+        if (this.keyboardOnlyMode) {
+            return;
+        }
+
         // Toggle via input manager if available
         if (window.gameInputManager && window.gameInputManager.toggleBlockMode) {
             const isActive = window.gameInputManager.toggleBlockMode();
@@ -543,31 +613,32 @@ class UIController {
 
         checklistPanel.innerHTML = '';
 
-        // Group tasks by agent
-        this.agents.forEach((agent, index) => {
-            if (!agent.tasksQueue || agent.tasksQueue.length === 0) return;
+        const player = this.agents[0];
+        if (!player || !player.tasksQueue || player.tasksQueue.length === 0) {
+            checklistPanel.innerHTML = '<div class="agent-info"><strong>Task:</strong> Go directly to work</div>';
+            return;
+        }
 
-            const agentSection = document.createElement('div');
-            agentSection.className = 'checklist-agent-section';
-            agentSection.innerHTML = `<div class="checklist-agent-name">Agent ${index + 1}</div>`;
+        const playerSection = document.createElement('div');
+        playerSection.className = 'checklist-agent-section';
+        playerSection.innerHTML = '<div class="checklist-agent-name">Player Tasks</div>';
 
-            const list = document.createElement('ul');
-            list.className = 'checklist-list';
+        const list = document.createElement('ul');
+        list.className = 'checklist-list';
 
-            agent.tasksQueue.forEach((task, taskIndex) => {
-                const item = document.createElement('li');
-                item.className = `checklist-item ${task.completed ? 'completed' : 'active'}`;
-                
-                const icon = task.completed ? '✅' : '⏳';
-                const taskName = this.formatTaskName(task.type);
-                
-                item.innerHTML = `<span class="checklist-icon">${icon}</span> <span>${taskName}</span>`;
-                list.appendChild(item);
-            });
+        player.tasksQueue.forEach((task) => {
+            const item = document.createElement('li');
+            item.className = `checklist-item ${task.completed ? 'completed' : 'active'}`;
 
-            agentSection.appendChild(list);
-            checklistPanel.appendChild(agentSection);
+            const icon = task.completed ? '✅' : '⏳';
+            const taskName = this.formatTaskName(task.type);
+
+            item.innerHTML = `<span class="checklist-icon">${icon}</span> <span>${taskName}</span>`;
+            list.appendChild(item);
         });
+
+        playerSection.appendChild(list);
+        checklistPanel.appendChild(playerSection);
     }
 
     /**
@@ -620,7 +691,9 @@ class UIController {
      */
     updateTurnTimeline() {
         const currentTurn = this.turnManager.currentTurn || 0;
-        const maxTurns = this.turnManager.maxTurns || 50;
+        const maxTurns = (this.turnManager && this.turnManager.config && this.turnManager.config.maxTurns)
+            ? this.turnManager.config.maxTurns
+            : 50;
 
         const timelineProgress = document.getElementById('timelineProgress');
         const timelineElapsed = document.getElementById('timelineElapsed');
@@ -708,13 +781,11 @@ class UIController {
      * Show game over screen with results
      */
     showGameOver() {
-        // Count results
-        const arrivedAgents = this.agents.filter(a => a.status === 'ARRIVED');
-        const failedAgents = this.agents.filter(a => a.status === 'FAILED');
+        const player = this.agents[0] || null;
+        const playerSucceeded = player && player.status === 'ARRIVED';
+        const playerFailed = player && player.status === 'FAILED';
 
-        const resultTitle = arrivedAgents.length > failedAgents.length && arrivedAgents.length > 0
-            ? 'You Won!'
-            : 'Game Over';
+        const resultTitle = playerSucceeded ? 'You Won!' : 'Game Over';
 
         // Calculate average congestion
         let congestionSum = 0;
@@ -743,10 +814,10 @@ class UIController {
             this.uiElements.gameOverTurns.textContent = this.turnManager.currentTurn || 0;
         }
         if (this.uiElements.gameOverSuccess) {
-            this.uiElements.gameOverSuccess.textContent = arrivedAgents.length;
+            this.uiElements.gameOverSuccess.textContent = playerSucceeded ? '1' : '0';
         }
         if (this.uiElements.gameOverFail) {
-            this.uiElements.gameOverFail.textContent = failedAgents.length;
+            this.uiElements.gameOverFail.textContent = playerFailed ? '1' : '0';
         }
         if (this.uiElements.gameOverCongestion) {
             this.uiElements.gameOverCongestion.textContent = avgCongestion.toFixed(2);
@@ -788,8 +859,10 @@ class UIController {
         this.updateTurnDisplay();
         this.updateAgentList();
 
-        // Enable end turn button
-        this.uiElements.endTurnBtn.disabled = false;
+        // Enable end turn button only when not using keyboard-only mode
+        if (!this.keyboardOnlyMode) {
+            this.uiElements.endTurnBtn.disabled = false;
+        }
 
     }
 
@@ -797,17 +870,11 @@ class UIController {
      * Reset game state
      */
     resetGame() {
-        if (this.uiElements.gameOverOverlay) {
-            this.uiElements.gameOverOverlay.classList.add('hidden');
+        if (this.autoplayInterval) {
+            clearInterval(this.autoplayInterval);
+            this.autoplayInterval = null;
         }
-
-        document.body.classList.remove('game-over');
-
-        if (window.game && typeof window.game.reset === 'function') {
-            window.game.reset();
-            return;
-        }
-
+        this.isAutoplayActive = false;
         location.reload();
     }
 
@@ -815,6 +882,10 @@ class UIController {
      * Toggle autoplay on/off
      */
     toggleAutoplay() {
+        if (this.keyboardOnlyMode) {
+            return;
+        }
+
         this.isAutoplayActive = !this.isAutoplayActive;
         
         if (this.uiElements.autoplayBtn) {

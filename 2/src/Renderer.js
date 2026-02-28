@@ -53,6 +53,11 @@ class Renderer {
         this.agentPathMeshes = new Map(); // Key: agent.id, Value: THREE.LineSegments (multi-segment path)
         this.agentAnimations = new Map(); // Key: agent.id, Value: {from, to, progress, duration, startTime}
         this.particles = new Map();       // Key: "x,y", Value: particle mesh
+        this.objectiveHighlightMeshes = {
+            home: null,
+            task: null,
+            office: null,
+        };
         
         // Camera animation
         this.cameraAnimation = null;      // {from, to, progress, duration, startTime}
@@ -1189,10 +1194,22 @@ class Renderer {
      * @param {Array} agents - Array of Agent objects
      */
     createAgents(agents) {
+        this.clearAgentVisuals();
 
-        for (const agent of agents) {
-            // Create agent sphere (radius 0.2)
-            const geometry = new THREE.SphereGeometry(0.2, 16, 16);
+        const playerAgent = Array.isArray(agents) && agents.length > 0 ? agents[0] : null;
+        if (!playerAgent) {
+            return;
+        }
+
+        const agentsToRender = Array.isArray(agents) ? agents : [playerAgent];
+
+        for (const agent of agentsToRender) {
+            const isCommuterNpc = agent.isCommuter === true;
+
+            // Player: sphere orb, NPC commuter: smaller cube
+            const geometry = isCommuterNpc
+                ? new THREE.BoxGeometry(0.28, 0.28, 0.28)
+                : new THREE.SphereGeometry(0.2, 16, 16);
 
             // Use agent color for material
             const color = new THREE.Color(agent.color || '#4da6ff');
@@ -1202,7 +1219,7 @@ class Renderer {
                 metalness: 0.6,
                 roughness: 0.2,
                 emissive: color,
-                emissiveIntensity: 0.3,
+                emissiveIntensity: isCommuterNpc ? 0.2 : 0.3,
             });
 
             // Create mesh
@@ -1211,7 +1228,7 @@ class Renderer {
             // Position at agent location, elevated above ground (0.5 units)
             mesh.position.set(
                 agent.currentLocation.x,
-                0.5,
+                isCommuterNpc ? 0.32 : 0.5,
                 agent.currentLocation.y
             );
 
@@ -1348,8 +1365,116 @@ class Renderer {
             this.agentPhotoCameraMeshes.set(agent.id.toString(), cameraSprite);
         }
 
-        // Create initial path visualizations for all agents
-        this.updateAgentPaths(agents);
+        // Create initial path visualizations for the player
+        this.updateAgentPaths(agentsToRender);
+        this.updateObjectiveHighlights(playerAgent);
+    }
+
+    /**
+     * Clear all existing agent-related meshes from the scene
+     */
+    clearAgentVisuals() {
+        const removeAll = (map) => {
+            for (const mesh of map.values()) {
+                this.scene.remove(mesh);
+            }
+            map.clear();
+        };
+
+        removeAll(this.agentMeshes);
+        removeAll(this.agentAuraMeshes);
+        removeAll(this.agentInjuryMeshes);
+        removeAll(this.agentCriminalMeshes);
+        removeAll(this.agentPhotoCameraMeshes);
+        removeAll(this.agentPathMeshes);
+        this.agentAnimations.clear();
+        this.clearObjectiveHighlights();
+    }
+
+    /**
+     * Create objective highlight mesh (ring + beacon)
+     * @param {number} color - Hex color
+     * @returns {THREE.Group}
+     */
+    createObjectiveHighlightMesh(color) {
+        const group = new THREE.Group();
+
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(0.45, 0.06, 12, 24),
+            new THREE.MeshStandardMaterial({
+                color,
+                emissive: color,
+                emissiveIntensity: 0.8,
+                transparent: true,
+                opacity: 0.85,
+            })
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 0.08;
+
+        const beacon = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.05, 0.05, 0.7, 10),
+            new THREE.MeshStandardMaterial({
+                color,
+                emissive: color,
+                emissiveIntensity: 0.6,
+                transparent: true,
+                opacity: 0.7,
+            })
+        );
+        beacon.position.y = 0.45;
+
+        group.add(ring, beacon);
+        this.scene.add(group);
+        return group;
+    }
+
+    /**
+     * Remove objective highlights from scene
+     */
+    clearObjectiveHighlights() {
+        for (const key of Object.keys(this.objectiveHighlightMeshes)) {
+            const mesh = this.objectiveHighlightMeshes[key];
+            if (mesh) {
+                this.scene.remove(mesh);
+                this.objectiveHighlightMeshes[key] = null;
+            }
+        }
+    }
+
+    /**
+     * Update home/task/office highlights for player
+     * @param {Agent|null} player
+     */
+    updateObjectiveHighlights(player) {
+        if (!player) {
+            this.clearObjectiveHighlights();
+            return;
+        }
+
+        if (!this.objectiveHighlightMeshes.home) {
+            this.objectiveHighlightMeshes.home = this.createObjectiveHighlightMesh(0x51cf66);
+        }
+        if (!this.objectiveHighlightMeshes.task) {
+            this.objectiveHighlightMeshes.task = this.createObjectiveHighlightMesh(0xffd43b);
+        }
+        if (!this.objectiveHighlightMeshes.office) {
+            this.objectiveHighlightMeshes.office = this.createObjectiveHighlightMesh(0x4da6ff);
+        }
+
+        this.objectiveHighlightMeshes.home.position.set(player.homeLocation.x, 0.02, player.homeLocation.y);
+        this.objectiveHighlightMeshes.office.position.set(player.jobLocation.x, 0.02, player.jobLocation.y);
+
+        const activeTask = player.tasksQueue
+            ? player.tasksQueue.find(task => !task.completed)
+            : null;
+
+        if (activeTask && activeTask.location) {
+            this.objectiveHighlightMeshes.task.visible = true;
+            this.objectiveHighlightMeshes.task.position.set(activeTask.location.x, 0.02, activeTask.location.y);
+        } else {
+            this.objectiveHighlightMeshes.task.visible = false;
+        }
     }
 
     /**
@@ -1358,7 +1483,9 @@ class Renderer {
      * @param {Array} agents - Array of Agent objects
      */
     updateAgentPaths(agents) {
-        for (const agent of agents) {
+        const agentsToRender = Array.isArray(agents) ? agents : [];
+
+        for (const agent of agentsToRender) {
             const key = agent.id.toString();
             
             // Remove old path if exists
@@ -1476,7 +1603,10 @@ class Renderer {
      * @param {Array} agents - Array of Agent objects
      */
     updateAgents(agents) {
-        for (const agent of agents) {
+        const agentsToRender = Array.isArray(agents) ? agents : [];
+        const playerAgent = agentsToRender.length > 0 ? agentsToRender[0] : null;
+
+        for (const agent of agentsToRender) {
             const key = agent.id.toString();
             const mesh = this.agentMeshes.get(key);
 
@@ -1583,6 +1713,8 @@ class Renderer {
                 }
             }
         }
+
+        this.updateObjectiveHighlights(playerAgent);
     }
 
     /**
@@ -2168,6 +2300,8 @@ class Renderer {
             mesh.geometry.dispose();
             mesh.material.dispose();
         });
+
+        this.clearObjectiveHighlights();
 
         // Dispose renderer
         this.renderer.dispose();
