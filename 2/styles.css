@@ -34,6 +34,74 @@ body.game-over #gameCanvas {
 }
 
 /* ========================================
+   START MENU
+   ======================================== */
+.start-menu-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 8, 18, 0.88);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+}
+
+.start-menu-overlay.hidden {
+    display: none;
+}
+
+.start-menu-card {
+    width: min(560px, 92vw);
+    padding: 32px;
+    border-radius: 16px;
+    text-align: center;
+    background: linear-gradient(145deg, rgba(26, 32, 60, 0.96), rgba(15, 18, 36, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.start-menu-title {
+    font-size: 36px;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    color: #4da6ff;
+}
+
+.start-menu-subtitle {
+    font-size: 16px;
+    line-height: 1.4;
+    color: #d2dcff;
+    margin-bottom: 24px;
+}
+
+.start-menu-btn {
+    min-width: 180px;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f1224;
+    background: linear-gradient(135deg, #4da6ff, #7b61ff);
+    box-shadow: 0 12px 30px rgba(77, 166, 255, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.start-menu-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 40px rgba(77, 166, 255, 0.45);
+}
+
+.start-menu-btn:disabled {
+    opacity: 0.7;
+    cursor: default;
+    transform: none;
+    box-shadow: 0 12px 30px rgba(77, 166, 255, 0.25);
+}
+
+/* ========================================
    TOP BAR
    ======================================== */
 #topBar {

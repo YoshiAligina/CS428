@@ -767,40 +767,66 @@ class Game {
  */
 let game = null;
 
+function hideStartMenu() {
+    const startMenu = document.getElementById('startMenu');
+    if (startMenu) {
+        startMenu.classList.add('hidden');
+    }
+}
+
+function initializeAndStartGame() {
+    if (typeof THREE === 'undefined') {
+        console.error('Three.js failed to load');
+        alert('Error: Three.js library failed to load. Please refresh the page.');
+        return false;
+    }
+
+    const requiredClasses = ['Board', 'Agent', 'Renderer', 'InputManager', 'TurnManager', 'UIController', 'Utils', 'Tile'];
+    const missingClasses = requiredClasses.filter(className => typeof window[className] === 'undefined');
+
+    if (missingClasses.length > 0) {
+        console.error('Missing required classes:', missingClasses);
+        alert(`Error: Failed to load required game classes: ${missingClasses.join(', ')}`);
+        return false;
+    }
+
+    try {
+        game = new Game();
+        game.start();
+        window.game = game;
+        return true;
+    } catch (error) {
+        console.error('Failed to initialize game:', error);
+        alert(`Error: Failed to start game: ${error.message}`);
+        return false;
+    }
+}
+
 window.addEventListener('load', () => {
+    const startButton = document.getElementById('startGameBtn');
 
-    // Wait for Three.js to load
-    setTimeout(() => {
-        if (typeof THREE === 'undefined') {
-            console.error('Three.js failed to load');
-            alert('Error: Three.js library failed to load. Please refresh the page.');
-            return;
+    if (!startButton) {
+        console.error('Start button #startGameBtn not found');
+        const started = initializeAndStartGame();
+        if (started) {
+            hideStartMenu();
         }
+        return;
+    }
 
-        // Check if all required classes are loaded
-        const requiredClasses = ['Board', 'Agent', 'Renderer', 'InputManager', 'TurnManager', 'UIController', 'Utils', 'Tile'];
-        const missingClasses = requiredClasses.filter(className => typeof window[className] === 'undefined');
+    startButton.addEventListener('click', () => {
+        startButton.disabled = true;
 
-        if (missingClasses.length > 0) {
-            console.error('Missing required classes:', missingClasses);
-            alert(`Error: Failed to load required game classes: ${missingClasses.join(', ')}`);
-            return;
-        }
-
-
-        try {
-            // Create and start game
-            game = new Game();
-            game.start();
-
-            // Make game accessible from console for debugging
-            window.game = game;
-
-        } catch (error) {
-            console.error('Failed to initialize game:', error);
-            alert(`Error: Failed to start game: ${error.message}`);
-        }
-    }, 200);
+        // Wait briefly for all scripts/libraries to be fully available
+        setTimeout(() => {
+            const started = initializeAndStartGame();
+            if (started) {
+                hideStartMenu();
+            } else {
+                startButton.disabled = false;
+            }
+        }, 200);
+    });
 });
 
 /**
