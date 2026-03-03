@@ -978,19 +978,297 @@ button:disabled {
 }
 
 /* ========================================
+   FINAL LIGHTENING OVERRIDES
+   ======================================== */
+#mapLegend {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: #8fbfff;
+    box-shadow: 0 8px 20px rgba(93, 138, 201, 0.2);
+}
+
+.legend-header {
+    background: rgba(122, 184, 255, 0.18);
+    border-bottom-color: #8fbfff;
+    color: #2f4f87;
+}
+
+.legend-category-title {
+    color: #3d6fc7;
+}
+
+.legend-item {
+    color: #4f6288;
+}
+
+#mapLegend::-webkit-scrollbar-track {
+    background: rgba(122, 184, 255, 0.15);
+}
+
+#mapCompass {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: #8fbfff;
+    box-shadow: 0 8px 20px rgba(93, 138, 201, 0.2);
+}
+
+.compass-dir {
+    color: #3f5f96;
+    text-shadow: none;
+}
+
+#compassReading {
+    color: #3f5f96;
+}
+
+.timeline-bar {
+    background: rgba(122, 184, 255, 0.2);
+    border-color: rgba(122, 184, 255, 0.45);
+}
+
+.tooltip {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: #8fbfff;
+    color: #243a62;
+    box-shadow: 0 8px 18px rgba(93, 138, 201, 0.25);
+}
+
+/* ========================================
+   LIGHT + FUN THEME OVERRIDES
+   ======================================== */
+html, body {
+    background: linear-gradient(180deg, #f4f9ff 0%, #eaf3ff 55%, #e3f6f1 100%);
+    color: #22324d;
+}
+
+#topBar,
+#sidePanel,
+#actionPanel,
+#mapLegend,
+#tileInspector,
+#mapCompass {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(6px);
+    border-color: #8fbfff;
+    box-shadow: 0 10px 26px rgba(93, 138, 201, 0.18);
+}
+
+#topBar {
+    border-bottom-color: #8fbfff;
+}
+
+#sidePanel {
+    border-left-color: #8fbfff;
+}
+
+#actionPanel {
+    border-top-color: #8fbfff;
+}
+
+#turnDisplay,
+#timeDisplay,
+#currentTime,
+#gameStatus,
+#sidePanel h3,
+.agent-name,
+.timeline-label,
+.legend-header,
+.legend-category-title,
+#compassReading,
+.inspector-header h3 {
+    color: #2f4f87;
+}
+
+.agent-info,
+.legend-item,
+.timeline-text,
+.stat-row,
+.inspector-row .label,
+.start-menu-subtitle {
+    color: #4f6288;
+}
+
+.agent-info strong,
+.inspector-row > span:last-child,
+.inspector-row > div:last-child,
+.game-over-stats .stat-value {
+    color: #1f3050;
+}
+
+#gameStatus.status-ready {
+    color: #2f6fbd;
+    border-color: #7cb5ff;
+    background: rgba(124, 181, 255, 0.2);
+}
+
+#gameStatus.status-playing {
+    color: #228861;
+    border-color: #7fd7af;
+    background: rgba(127, 215, 175, 0.22);
+}
+
+#gameStatus.status-gameover {
+    color: #c2576a;
+    border-color: #f5a0ad;
+    background: rgba(245, 160, 173, 0.2);
+}
+
+.agent-card {
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 10px;
+}
+
+.agent-card:hover {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.progress-bar-container {
+    background: rgba(194, 219, 255, 0.45);
+    border-color: rgba(109, 161, 236, 0.35);
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #7ad9a7, #7ab8ff);
+}
+
+.control-btn,
+.primary-btn,
+.toggle-btn,
+.start-menu-btn,
+.play-again-btn {
+    border-radius: 10px;
+}
+
+.control-btn {
+    background: linear-gradient(135deg, #7ab8ff 0%, #8b9dff 100%);
+    border-color: #7ab8ff !important;
+    color: #12203b;
+}
+
+.control-btn:hover {
+    background: linear-gradient(135deg, #7fe3be 0%, #7ab8ff 100%);
+    box-shadow: 0 6px 18px rgba(122, 184, 255, 0.35);
+}
+
+.primary-btn {
+    background: linear-gradient(135deg, #7ab8ff 0%, #7fe3be 100%);
+    color: #0f2340;
+    border-color: #7ab8ff;
+}
+
+.primary-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #98c8ff 0%, #9aecd0 100%);
+}
+
+.toggle-btn {
+    background: rgba(122, 184, 255, 0.18);
+    border-color: #8fbfff;
+    color: #1f3050;
+}
+
+.toggle-btn:hover:not(:disabled) {
+    background: rgba(122, 184, 255, 0.3);
+}
+
+.speed-control {
+    background: rgba(122, 184, 255, 0.18);
+    border-color: #8fbfff;
+}
+
+.speed-control label,
+#speedDisplay {
+    color: #2f4f87;
+}
+
+#taskChecklistPanel,
+#statisticsPanel,
+#turnTimeline {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(137, 184, 255, 0.5);
+}
+
+.checklist-item {
+    color: #51607f;
+}
+
+.checklist-item.active {
+    color: #3d6fc7;
+    background: rgba(122, 184, 255, 0.18);
+}
+
+.stat-value {
+    color: #3f6fb9;
+}
+
+.legend-header,
+.inspector-header {
+    background: rgba(122, 184, 255, 0.18);
+    border-bottom-color: rgba(122, 184, 255, 0.55);
+}
+
+.legend-icon.road {
+    background: #d5dfef;
+    color: #6e809e;
+}
+
+.legend-icon.congestion {
+    background: #ff9ca8;
+    color: #ffffff;
+}
+
+.legend-icon.blocked {
+    background: #8f9eb6;
+    color: #fff7b0;
+}
+
+.legend-icon.service {
+    background: #7ab8ff;
+}
+
+.legend-icon.landmark {
+    background: #ffe38a;
+    color: #3c3200;
+}
+
+.start-menu-overlay,
+.game-over-overlay {
+    background: rgba(225, 239, 255, 0.78);
+}
+
+.start-menu-card,
+.game-over-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(237, 246, 255, 0.96));
+    border: 1px solid rgba(122, 184, 255, 0.35);
+    box-shadow: 0 20px 60px rgba(114, 150, 207, 0.25);
+}
+
+.start-menu-title,
+.game-over-title {
+    color: #3567b6;
+    text-shadow: none;
+}
+
+.game-over-stats .stat-row {
+    background: rgba(122, 184, 255, 0.1);
+    border-color: rgba(122, 184, 255, 0.2);
+}
+
+.game-over-stats .stat-label {
+    color: #4f6288;
+}
+
+/* ========================================
    TASK CHECKLIST PANEL
    ======================================== */
 #taskChecklistPanel {
     margin-top: 16px;
     padding: 12px;
-    background: rgba(20, 30, 50, 0.8);
-    border-left: 3px solid #ffd700;
+    background: rgba(255, 244, 214, 0.92);
+    border-left: 3px solid #ffbf47;
     border-radius: 4px;
 }
 
 #taskChecklistPanel h4 {
     margin-bottom: 8px;
-    color: #ffd700;
+    color: #c67a00;
     font-size: 14px;
 }
 
