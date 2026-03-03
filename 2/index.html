@@ -75,6 +75,11 @@
                 <button id="moveDownBtn" type="button" class="control-btn move-btn move-down" aria-label="Move down" onclick="window.game && window.game.movePlayer(0, 1)">Down</button>
                 <button id="moveRightBtn" type="button" class="control-btn move-btn move-right" aria-label="Move right" onclick="window.game && window.game.movePlayer(1, 0)">Right</button>
             </div>
+            <div class="zoom-control">
+                <label for="zoomSlider">Zoom:</label>
+                <input type="range" id="zoomSlider" min="20" max="80" value="40" class="zoom-slider" aria-label="Map zoom slider">
+                <span id="zoomDisplay">40</span>
+            </div>
             <div id="moveDebug" class="move-debug">Move debug: waiting for input</div>
             
             <button id="endTurnBtn" class="primary-btn">End Turn</button>

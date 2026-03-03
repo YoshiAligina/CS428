@@ -79,6 +79,8 @@ class UIController {
         this.uiElements.autoplayBtn = document.getElementById('autoplayBtn');
         this.uiElements.speedSlider = document.getElementById('speedSlider');
         this.uiElements.speedDisplay = document.getElementById('speedDisplay');
+        this.uiElements.zoomSlider = document.getElementById('zoomSlider');
+        this.uiElements.zoomDisplay = document.getElementById('zoomDisplay');
         this.uiElements.legendMinimizeBtn = document.getElementById('legendMinimizeBtn');
         this.uiElements.legendContent = document.getElementById('legendContent');
 
@@ -97,8 +99,20 @@ class UIController {
         if (this.uiElements.speedSlider) {
             this.uiElements.speedSlider.addEventListener('input', (e) => this.updateSpeed(parseInt(e.target.value)));
         }
+        if (this.uiElements.zoomSlider) {
+            this.uiElements.zoomSlider.addEventListener('input', (e) => this.updateZoom(parseInt(e.target.value, 10)));
+        }
         if (this.uiElements.legendMinimizeBtn) {
             this.uiElements.legendMinimizeBtn.addEventListener('click', () => this.toggleLegendMinimize());
+        }
+
+        if (this.uiElements.zoomSlider && window.gameRenderer && typeof window.gameRenderer.getZoomDistance === 'function') {
+            const zoomDistance = Math.round(window.gameRenderer.getZoomDistance());
+            const zoomLevel = 100 - zoomDistance;
+            this.uiElements.zoomSlider.value = zoomLevel;
+            if (this.uiElements.zoomDisplay) {
+                this.uiElements.zoomDisplay.textContent = zoomLevel.toString();
+            }
         }
 
         // Add block counter span to button
@@ -945,6 +959,27 @@ class UIController {
                     this.autoplayInterval = null;
                 }
             }
+        }
+    }
+
+    /**
+     * Update camera zoom from slider input
+     * @param {number} zoomDistance
+     */
+    updateZoom(zoomLevel) {
+        if (!Number.isFinite(zoomLevel)) {
+            return;
+        }
+
+        const clampedLevel = Math.min(80, Math.max(20, zoomLevel));
+        const zoomDistance = 100 - clampedLevel;
+
+        if (this.uiElements.zoomDisplay) {
+            this.uiElements.zoomDisplay.textContent = clampedLevel.toString();
+        }
+
+        if (window.gameRenderer && typeof window.gameRenderer.setZoomDistance === 'function') {
+            window.gameRenderer.setZoomDistance(zoomDistance);
         }
     }
 

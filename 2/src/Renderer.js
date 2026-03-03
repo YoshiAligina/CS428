@@ -1985,6 +1985,48 @@ class Renderer {
     }
 
     /**
+     * Get current camera zoom distance
+     * @returns {number}
+     */
+    getZoomDistance() {
+        return this.cameraDistance;
+    }
+
+    /**
+     * Set camera zoom distance
+     * @param {number} distance
+     */
+    setZoomDistance(distance) {
+        if (!this.camera) {
+            return;
+        }
+
+        const clampedDistance = Math.min(80, Math.max(20, distance));
+        this.cameraAnimation = null;
+        this.cameraDistance = clampedDistance;
+
+        const target = (this.controls && this.controls.target)
+            ? this.controls.target.clone()
+            : new THREE.Vector3(this.boardCenter.x, 0, this.boardCenter.y);
+
+        const offset = this.camera.position.clone().sub(target);
+        if (offset.lengthSq() < 0.0001) {
+            const defaultAngle = Math.PI / 4;
+            offset.set(Math.cos(defaultAngle), 0.75, Math.sin(defaultAngle));
+        }
+
+        offset.normalize().multiplyScalar(clampedDistance);
+        this.camera.position.copy(target.clone().add(offset));
+        this.camera.lookAt(target);
+
+        if (this.controls) {
+            this.controls.minDistance = 20;
+            this.controls.maxDistance = 80;
+            this.controls.update();
+        }
+    }
+
+    /**
      * Update camera animation
      */
     updateCameraAnimation() {

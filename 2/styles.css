@@ -240,8 +240,8 @@ body.game-over #gameCanvas {
 .agent-task-checklist {
     margin: 6px 0 8px;
     padding: 6px 8px;
-    background: rgba(100, 150, 200, 0.15);
-    border-left: 3px solid #6496c8;
+    background: rgba(233, 244, 255, 0.95);
+    border-left: 3px solid #6ea9f1;
     border-radius: 4px;
     font-size: 12px;
 }
@@ -249,7 +249,7 @@ body.game-over #gameCanvas {
 .agent-task-checklist strong {
     display: block;
     margin-bottom: 4px;
-    color: #a0c7e8;
+    color: #2e5ea8;
     font-weight: 600;
 }
 
@@ -262,20 +262,24 @@ body.game-over #gameCanvas {
 .agent-task-checklist .task-item {
     margin: 2px 0;
     padding: 2px 0;
-    color: #d0d0d0;
+    color: #243b63;
     font-family: 'Courier New', monospace;
     font-size: 11px;
     transition: color 0.2s ease;
 }
 
 .agent-task-checklist .task-item.completed {
-    color: #51cf66;
+    color: #0e7a44;
+    font-weight: 700;
+    background: rgba(127, 215, 175, 0.35);
+    border-radius: 3px;
     text-decoration: line-through;
-    opacity: 0.7;
+    opacity: 1;
 }
 
 .agent-task-checklist .task-item.pending {
-    color: #ffd93d;
+    color: #15407f;
+    font-weight: 700;
 }
 
 /* ========================================
@@ -709,6 +713,37 @@ button {
     min-width: 30px;
     text-align: center;
 }
+
+.zoom-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(122, 184, 255, 0.18);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #8fbfff;
+}
+
+.zoom-control label {
+    font-size: 11px;
+    color: #2f4f87;
+    white-space: nowrap;
+}
+
+.zoom-slider {
+    width: 110px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: #7ab8ff;
+}
+
+#zoomDisplay {
+    font-size: 11px;
+    color: #2f4f87;
+    font-weight: 600;
+    min-width: 22px;
+    text-align: center;
+}
 }
 
 .primary-btn {
@@ -975,6 +1010,86 @@ button:disabled {
         left: 24px;
         right: 24px;
     }
+}
+
+/* ========================================
+   COMPASS + LEGEND COLOR REFRESH
+   ======================================== */
+#mapLegend {
+    background: rgba(240, 250, 255, 0.94);
+    border-color: #6ea9f1;
+    box-shadow: 0 10px 24px rgba(72, 124, 196, 0.24);
+}
+
+.legend-header {
+    background: linear-gradient(135deg, rgba(110, 169, 241, 0.28), rgba(123, 222, 195, 0.24));
+    border-bottom-color: #6ea9f1;
+    color: #1f4e94;
+}
+
+.legend-category-title {
+    color: #0e7a63;
+}
+
+.legend-item {
+    color: #25456f;
+}
+
+.minimize-btn {
+    color: #1f4e94;
+}
+
+.minimize-btn:hover {
+    color: #0e7a63;
+}
+
+.legend-icon.road {
+    background: #dce7f8;
+    color: #647da3;
+}
+
+.legend-icon.congestion {
+    background: #ff8fa3;
+    color: #ffffff;
+}
+
+.legend-icon.blocked {
+    background: #8aa0bf;
+    color: #fff4a3;
+}
+
+.legend-icon.service {
+    background: #55a7ff;
+    color: #ffffff;
+}
+
+.legend-icon.landmark {
+    background: #ffdf7a;
+    color: #4d3d00;
+}
+
+#mapCompass {
+    background: rgba(240, 250, 255, 0.95);
+    border-color: #6ea9f1;
+    box-shadow: 0 10px 24px rgba(72, 124, 196, 0.24);
+}
+
+.compass-marker {
+    color: #ff6f91;
+    text-shadow: 0 0 6px rgba(255, 111, 145, 0.45);
+}
+
+#compassDial {
+    border-color: rgba(110, 169, 241, 0.8);
+}
+
+.compass-dir {
+    color: #1f4e94;
+    text-shadow: none;
+}
+
+#compassReading {
+    color: #0e7a63;
 }
 
 /* ========================================
@@ -1278,7 +1393,7 @@ html, body {
 }
 
 .checklist-agent-name {
-    color: #4da6ff;
+    color: #2458a8;
     font-weight: 600;
     margin-bottom: 4px;
     padding: 4px 0;
@@ -1293,20 +1408,23 @@ html, body {
     padding: 3px 6px;
     margin: 2px 0;
     border-radius: 3px;
-    color: #b0b0b0;
+    color: #1f2f4d;
+    font-weight: 600;
     font-size: 12px;
     transition: all 0.3s ease;
 }
 
 .checklist-item.active {
-    color: #ffd700;
-    background: rgba(255, 215, 0, 0.1);
+    color: #163d7a;
+    background: rgba(122, 184, 255, 0.28);
 }
 
 .checklist-item.completed {
-    color: #51cf66;
+    color: #0e7a44;
+    background: rgba(127, 215, 175, 0.35);
+    font-weight: 700;
     text-decoration: line-through;
-    opacity: 0.7;
+    opacity: 1;
 }
 
 .checklist-icon {
@@ -1413,13 +1531,13 @@ html, body {
     bottom: 100px;
     left: 20px;
     width: 220px;
-    background: rgba(0, 0, 0, 0.9);
-    border: 2px solid #4da6ff;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #8fbfff;
     border-radius: 6px;
     z-index: 50;
     max-height: 400px;
     overflow-y: auto;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 8px 20px rgba(93, 138, 201, 0.2);
     transition: max-height 0.3s ease, width 0.3s ease;
 }
 
@@ -1435,11 +1553,11 @@ html, body {
 
 .legend-header {
     padding: 10px 12px;
-    background: rgba(77, 166, 255, 0.2);
-    border-bottom: 2px solid #4da6ff;
+    background: rgba(122, 184, 255, 0.18);
+    border-bottom: 2px solid #8fbfff;
     font-weight: bold;
     font-size: 13px;
-    color: #4da6ff;
+    color: #2f4f87;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1448,7 +1566,7 @@ html, body {
 .minimize-btn {
     background: none;
     border: none;
-    color: #4da6ff;
+    color: #2f4f87;
     font-size: 14px;
     cursor: pointer;
     padding: 0;
@@ -1461,7 +1579,7 @@ html, body {
 }
 
 .minimize-btn:hover {
-    color: #7ec8ff;
+    color: #3f6fb9;
 }
 
 .legend-content {
@@ -1478,7 +1596,7 @@ html, body {
 
 .legend-category-title {
     font-weight: bold;
-    color: #ffd700;
+    color: #3d6fc7;
     font-size: 12px;
     margin-bottom: 6px;
     text-transform: uppercase;
@@ -1491,7 +1609,7 @@ html, body {
     gap: 8px;
     padding: 4px 0;
     font-size: 12px;
-    color: #b0b0b0;
+    color: #4f6288;
 }
 
 .legend-icon {
@@ -1508,28 +1626,28 @@ html, body {
 }
 
 .legend-icon.road {
-    background: #666666;
-    color: #999999;
+    background: #d5dfef;
+    color: #6e809e;
 }
 
 .legend-icon.congestion {
-    background: #ff6b6b;
+    background: #ff9ca8;
     color: #ffffff;
 }
 
 .legend-icon.blocked {
-    background: #2f2f2f;
-    color: #ffff00;
+    background: #8f9eb6;
+    color: #fff7b0;
 }
 
 .legend-icon.service {
-    background: #2563eb;
+    background: #7ab8ff;
     color: #ffffff;
 }
 
 .legend-icon.landmark {
-    background: #ffd700;
-    color: #000000;
+    background: #ffe38a;
+    color: #3c3200;
 }
 
 #mapLegend::-webkit-scrollbar {
@@ -1537,7 +1655,7 @@ html, body {
 }
 
 #mapLegend::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(122, 184, 255, 0.15);
 }
 
 #mapLegend::-webkit-scrollbar-thumb {
@@ -1560,9 +1678,9 @@ html, body {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.88);
-    border: 2px solid #4da6ff;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #8fbfff;
+    box-shadow: 0 8px 20px rgba(93, 138, 201, 0.2);
     z-index: 120;
 }
 
@@ -1571,10 +1689,10 @@ html, body {
     top: 4px;
     left: 50%;
     transform: translateX(-50%);
-    color: #ff6b6b;
+    color: #ff8fa3;
     font-size: 15px;
     font-weight: 700;
-    text-shadow: 0 0 6px rgba(255, 107, 107, 0.8);
+    text-shadow: 0 0 6px rgba(255, 143, 163, 0.45);
     pointer-events: none;
 }
 
@@ -1582,7 +1700,7 @@ html, body {
     position: absolute;
     inset: 10px;
     border-radius: 50%;
-    border: 1px dashed rgba(77, 166, 255, 0.55);
+    border: 1px dashed rgba(122, 184, 255, 0.8);
     transition: transform 0.1s linear;
     will-change: transform;
 }
@@ -1592,8 +1710,8 @@ html, body {
     font-size: 13px;
     font-family: 'Courier New', monospace;
     font-weight: 700;
-    color: #cde9ff;
-    text-shadow: 0 0 6px rgba(77, 166, 255, 0.45);
+    color: #2f4f87;
+    text-shadow: none;
 }
 
 .compass-dir.north {
@@ -1627,7 +1745,7 @@ html, body {
     transform: translateX(-50%);
     font-size: 11px;
     font-family: 'Courier New', monospace;
-    color: #9ed0ff;
+    color: #2f4f87;
     white-space: nowrap;
 }
 
