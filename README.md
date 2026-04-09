@@ -21,7 +21,7 @@ A browser-based traffic board game with optional simulation tooling for difficul
 
 1. Open PowerShell in the project folder.
 2. Run:
-   - `cd C:...\CS428\2`
+   - `cd C:\Users\yoshi\Desktop\yoshiaiplaying\CS428\2`
    - `py -m http.server 8000`
 3. Open:
    - `http://localhost:8000`
