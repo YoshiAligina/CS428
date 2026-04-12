@@ -120,8 +120,8 @@ class Renderer {
     init() {
         // Create scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0xdcecff);
-        this.scene.fog = new THREE.Fog(0xdcecff, 80, 190);
+        this.scene.background = new THREE.Color(0x1a1f3a);
+        this.scene.fog = new THREE.Fog(0x1a1f3a, 100, 200);
 
         // Create camera with isometric view
         const width = this.canvas.clientWidth;
@@ -237,7 +237,7 @@ class Renderer {
         this.scene.add(this.directionalLight.target);
 
         // Ambient light (subtle fill light)
-        this.ambientLight = new THREE.AmbientLight(0xa8c4e2, 0.62);
+        this.ambientLight = new THREE.AmbientLight(0x7a8fa3, 0.5);
         this.scene.add(this.ambientLight);
 
     }
@@ -252,7 +252,7 @@ class Renderer {
         );
 
         const groundMaterial = new THREE.MeshStandardMaterial({
-            color: 0x8ea2bf,
+            color: 0x0a0e27,
             metalness: 0.1,
             roughness: 0.8,
         });
@@ -2352,24 +2352,12 @@ class Renderer {
             new THREE.Color(0xc9ddf2),
             progress
         );
-        const skyColor = new THREE.Color().lerpColors(
-            new THREE.Color(0xd9e8ff),
-            new THREE.Color(0xf2f8ff),
-            progress
-        );
         const intensity = 0.78 + (progress * 0.3);
 
         // Apply lighting changes with smooth transition
         this.directionalLight.color.copy(lightColor);
         this.directionalLight.intensity = intensity;
         this.ambientLight.color.copy(ambientColor);
-
-        if (this.scene) {
-            this.scene.background.copy(skyColor);
-            if (this.scene.fog) {
-                this.scene.fog.color.copy(skyColor);
-            }
-        }
     }
 
     /**
