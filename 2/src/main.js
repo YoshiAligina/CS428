@@ -26,8 +26,10 @@ function getGameConstants() {
 class Game {
     /**
      * Create Game instance
+     * @param {number} playerCount - Number of human players (1-4)
+     * @param {Array} playerNames - Array of player names (defaults to P1-P4)
      */
-    constructor() {
+    constructor(playerCount = 1, playerNames = []) {
         const constants = getGameConstants();
         // Core game objects
         this.board = null;
@@ -41,13 +43,20 @@ class Game {
         this.config = {
             boardWidth: constants.GRID_SIZE,
             boardHeight: constants.GRID_SIZE,
-            numAgents: 1,
+            numAgents: Math.max(1, Math.min(4, playerCount)), // Clamp between 1-4
             minNpcAgents: 3,
             maxNpcAgents: 4,
             maxTurns: constants.TURN_LIMIT,
-            agentColors: ['#4da6ff'],
+            agentColors: ['#4da6ff', '#51cf66', '#ff6b6b', '#ffd166'], // 4 player colors
             npcColors: ['#ff8c42', '#ffd166', '#8ecae6', '#c77dff'],
         };
+
+        // Multiplayer state
+        this.currentPlayerIndex = 0;
+
+        // Store player names, defaulting to P1-P4 if not provided
+        this.playerNames = playerNames.length > 0 ? playerNames :
+            Array.from({ length: this.config.numAgents }, (_, i) => `P${i + 1}`);
 
         // State
         this.isRunning = false;
@@ -142,30 +151,32 @@ class Game {
 
         this.agents = [];
 
-        // Spawn player
-        const playerHome = homes[0];
-        const playerOffice = offices[0];
-        const player = new Agent(
-            'player_1',
-            { x: playerHome.x, y: playerHome.y },
-            { x: playerOffice.x, y: playerOffice.y },
-            this.config.agentColors[0],
-            this.board
-        );
+        // Spawn human players (1-4)
+        for (let i = 0; i < this.config.numAgents; i++) {
+            const home = homes[i % homes.length];
+            const office = offices[i % offices.length];
+            const player = new Agent(
+                `player_${i + 1}`,
+                { x: home.x, y: home.y },
+                { x: office.x, y: office.y },
+                this.config.agentColors[i],
+                this.board
+            );
 
-        player.isPlayerControlled = true;
-        player.name = 'Player';
-        player.plannedPath = [];
-        player.pathIndex = 0;
-        player.maxTurns = this.config.maxTurns;
-        player.turnsRemaining = this.config.maxTurns;
-        this.agents.push(player);
+            player.isPlayerControlled = true;
+            player.name = this.playerNames[i] || `P${i + 1}`;
+            player.plannedPath = [];
+            player.pathIndex = 0;
+            player.maxTurns = this.config.maxTurns;
+            player.turnsRemaining = this.config.maxTurns;
+            this.agents.push(player);
+        }
 
         // Spawn 3-4 commuter NPCs
         const npcCount = this.config.minNpcAgents + Math.floor(Math.random() * (this.config.maxNpcAgents - this.config.minNpcAgents + 1));
         for (let index = 0; index < npcCount; index++) {
-            const home = homes[(index + 1) % homes.length];
-            const office = offices[(index + 1) % offices.length];
+            const home = homes[(this.config.numAgents + index) % homes.length];
+            const office = offices[(this.config.numAgents + index) % offices.length];
             const color = this.config.npcColors[index % this.config.npcColors.length];
 
             const npc = new Agent(
@@ -217,6 +228,45 @@ class Game {
         }
 
         return roadCandidates[Math.floor(Math.random() * roadCandidates.length)];
+    }
+
+    /**
+     * Get the currently active human player
+     * @returns {Agent|null} The active player agent
+     */
+    getActivePlayer() {
+        const players = this.agents.filter(a => a.isPlayerControlled);
+        const activePlayers = players.filter(a => a.status === Agent.STATUS.ACTIVE);
+        if (activePlayers.length === 0) {
+            return players.length > 0 ? players[0] : null;
+        }
+        return activePlayers[this.currentPlayerIndex % activePlayers.length];
+    }
+
+    /**
+     * Advance to the next active player or execute NPC turns
+     * When all human players have moved, executes NPC turn
+     */
+    advanceActivePlayer() {
+        const activePlayers = this.agents.filter(a => a.isPlayerControlled && a.status === Agent.STATUS.ACTIVE);
+        this.currentPlayerIndex++;
+
+        if (this.currentPlayerIndex >= activePlayers.length) {
+            // All players have moved, now NPCs move
+            this.currentPlayerIndex = 0;
+            this.turnManager.executeTurn();
+            this.refreshAfterPlayerTurn();
+        } else {
+            // Just switch active player — update UI and objective highlights only
+            if (this.renderer) {
+                this.renderer.updateAgents(this.agents, this.getActivePlayer());
+                this.renderer.updateTraffic(this.board);
+            }
+            if (this.uiController) {
+                this.uiController.updateAgentList();
+                this.uiController.updateTurnDisplay();
+            }
+        }
     }
 
     /**
@@ -558,7 +608,7 @@ class Game {
             return false;
         }
 
-        const player = this.agents[0];
+        const player = this.getActivePlayer();
         if (!player || player.status !== Agent.STATUS.ACTIVE) {
             this.setMovementDebug(`Blocked: player status is ${player ? player.status : 'missing'}`);
             return false;
@@ -573,8 +623,7 @@ class Game {
         if (player.isInJail && player.jailSentence > 0) {
             player.serveJailTime();
             player.decrementTurns();
-            this.turnManager.executeTurn();
-            this.refreshAfterPlayerTurn();
+            this.advanceActivePlayer();
 
             if (player.jailSentence > 0) {
                 this.setMovementDebug(`In jail: ${player.jailSentence} turn(s) remaining | Turn ${this.turnManager.currentTurn}`);
@@ -591,8 +640,7 @@ class Game {
             }
 
             player.decrementTurns();
-            this.turnManager.executeTurn();
-            this.refreshAfterPlayerTurn();
+            this.advanceActivePlayer();
 
             if (player.healingTurnsRemaining > 0) {
                 this.setMovementDebug(`Recovering in hospital: ${player.healingTurnsRemaining} turn(s) remaining | Turn ${this.turnManager.currentTurn}`);
@@ -645,9 +693,7 @@ class Game {
 
         player.decrementTurns();
 
-        this.turnManager.executeTurn();
-
-        this.refreshAfterPlayerTurn();
+        this.advanceActivePlayer();
 
         this.setMovementDebug(`Moved to (${targetX}, ${targetY}) | Turn ${this.turnManager.currentTurn}`);
         return true;
@@ -659,7 +705,7 @@ class Game {
     refreshAfterPlayerTurn() {
 
         if (this.renderer) {
-            this.renderer.updateAgents(this.agents);
+            this.renderer.updateAgents(this.agents, this.getActivePlayer());
             // this.renderer.updateAgentPaths(this.agents);  // Disabled: Hide NPC path visualization
             this.renderer.updateTraffic(this.board);
         }
@@ -791,7 +837,21 @@ function initializeAndStartGame() {
     }
 
     try {
-        game = new Game();
+        // Read selected player count from DOM
+        const selectedCount = (() => {
+            const btn = document.querySelector('.player-count-btn.selected');
+            return btn ? parseInt(btn.dataset.count, 10) : 1;
+        })();
+
+        // Read player names from input fields
+        const playerNames = [];
+        for (let i = 0; i < selectedCount; i++) {
+            const nameInput = document.getElementById(`playerName${i + 1}`);
+            const name = nameInput && nameInput.value.trim() ? nameInput.value.trim() : `P${i + 1}`;
+            playerNames.push(name);
+        }
+
+        game = new Game(selectedCount, playerNames);
         game.start();
         window.game = game;
         return true;

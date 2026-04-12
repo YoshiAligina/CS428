@@ -279,8 +279,8 @@ class TurnManager {
             return;
         }
 
-        // Injury event (3% chance)
-        if (Math.random() < 0.03) {
+        // Injury event (2% chance)
+        if (Math.random() < 0.02) {
             const injuryCandidates = this.agents.filter(agent =>
                 agent.status !== Agent.STATUS.FAILED && agent.status !== Agent.STATUS.ARRIVED && !agent.isInjured && !agent.isCommuter
             );
@@ -302,8 +302,8 @@ class TurnManager {
             }
         }
 
-        // Crime event (2% chance)
-        if (Math.random() < 0.02) {
+        // Crime event (1% chance)
+        if (Math.random() < 0.01) {
             const crimeCandidates = this.agents.filter(agent =>
                 agent.status !== Agent.STATUS.FAILED && agent.status !== Agent.STATUS.ARRIVED && !agent.isCriminal && !agent.isCommuter
             );

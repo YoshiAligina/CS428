@@ -1292,7 +1292,8 @@ class Renderer {
     createAgents(agents) {
         this.clearAgentVisuals();
 
-        const playerAgent = Array.isArray(agents) && agents.length > 0 ? agents[0] : null;
+        const agentsArray = Array.isArray(agents) ? agents : [];
+        const playerAgent = agentsArray.find(a => a.isPlayerControlled) || (agentsArray.length > 0 ? agentsArray[0] : null);
         if (!playerAgent) {
             return;
         }
@@ -1361,10 +1362,13 @@ class Renderer {
             roleCtx.fillStyle = isPlayer ? 'rgba(77,166,255,0.95)' : 'rgba(255,140,66,0.95)';
             roleCtx.fillRect(8, 12, 112, 40);
             roleCtx.fillStyle = '#ffffff';
-            roleCtx.font = 'bold 26px Segoe UI';
             roleCtx.textAlign = 'center';
             roleCtx.textBaseline = 'middle';
-            roleCtx.fillText(isPlayer ? 'YOU' : 'NPC', 64, 33);
+            const labelText = isPlayer ? (agent.name || 'YOU') : 'NPC';
+            // Adjust font size based on label length to ensure it fits
+            const fontSize = labelText.length > 10 ? 20 : labelText.length > 6 ? 24 : 26;
+            roleCtx.font = `bold ${fontSize}px Segoe UI`;
+            roleCtx.fillText(labelText, 64, 33);
 
             const roleTexture = new THREE.CanvasTexture(roleCanvas);
             const roleMaterial = new THREE.SpriteMaterial({
@@ -1838,10 +1842,11 @@ class Renderer {
      * Update agent mesh positions and colors based on current state
      * Updates positions and colors based on agent status
      * @param {Array} agents - Array of Agent objects
+     * @param {Agent} activePlayer - The active human player (optional)
      */
-    updateAgents(agents) {
+    updateAgents(agents, activePlayer = null) {
         const agentsToRender = Array.isArray(agents) ? agents : [];
-        const playerAgent = agentsToRender.length > 0 ? agentsToRender[0] : null;
+        const playerAgent = activePlayer || agentsToRender.find(a => a.isPlayerControlled) || (agentsToRender.length > 0 ? agentsToRender[0] : null);
 
         for (const agent of agentsToRender) {
             const key = agent.id.toString();

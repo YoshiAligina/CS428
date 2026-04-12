@@ -312,13 +312,40 @@ class UIController {
         // Clear existing list
         this.uiElements.agentList.innerHTML = '';
 
-        const player = this.agents[0];
-        if (!player) {
+        const activeIndex = (window.game && window.game.currentPlayerIndex) || 0;
+        const playerAgents = this.agents.filter(a => a.isPlayerControlled);
+
+        if (playerAgents.length === 0) {
             return;
         }
 
-        const card = this.createAgentCard(player, 0);
-        this.uiElements.agentList.appendChild(card);
+        // Show active player banner only for multiplayer
+        if (playerAgents.length > 1) {
+            const activePlayers = playerAgents.filter(a => a.status === Agent.STATUS.ACTIVE);
+            const activePlayer = activePlayers.length > 0
+                ? activePlayers[activeIndex % activePlayers.length]
+                : playerAgents[0];
+
+            const banner = document.createElement('div');
+            banner.className = 'active-player-banner';
+            banner.textContent = `${activePlayer.name}'s Turn`;
+            this.uiElements.agentList.appendChild(banner);
+        }
+
+        // Render all player cards
+        playerAgents.forEach((player, i) => {
+            const card = this.createAgentCard(player, i);
+
+            // Highlight active player card in multiplayer
+            if (playerAgents.length > 1) {
+                const activePlayers = playerAgents.filter(a => a.status === Agent.STATUS.ACTIVE);
+                if (activePlayers.length > 0 && i === (activeIndex % activePlayers.length)) {
+                    card.classList.add('is-active-turn');
+                }
+            }
+
+            this.uiElements.agentList.appendChild(card);
+        });
     }
 
     /**
@@ -330,7 +357,7 @@ class UIController {
     createAgentCard(agent, index) {
         const card = document.createElement('div');
         card.className = `agent-card status-${agent.status.toLowerCase()}`;
-        const displayName = agent.isPlayerControlled ? 'Player' : `Agent ${index + 1}`;
+        const displayName = agent.name || (agent.isPlayerControlled ? 'Player' : `Agent ${index + 1}`);
 
         // Determine status badge text and class
         let statusClass = 'active';

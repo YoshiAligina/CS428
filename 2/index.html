@@ -11,6 +11,39 @@
         <div class="start-menu-card">
             <h1 class="start-menu-title">City Traffic Board Game</h1>
             <p class="start-menu-subtitle">Try to get to work before 9:00 am or get fired !! To navigate, use WASD or buttons. North is UP.</p>
+
+            <div class="player-count-section">
+                <p class="player-count-label">Number of Players</p>
+                <div class="player-count-selector">
+                    <button class="player-count-btn selected" data-count="1" type="button">1</button>
+                    <button class="player-count-btn" data-count="2" type="button">2</button>
+                    <button class="player-count-btn" data-count="3" type="button">3</button>
+                    <button class="player-count-btn" data-count="4" type="button">4</button>
+                </div>
+            </div>
+
+            <div class="player-names-section">
+                <p class="player-names-label">Player Names (leave blank for defaults)</p>
+                <div class="player-names-inputs">
+                    <div class="player-name-group">
+                        <label for="playerName1">P1</label>
+                        <input type="text" id="playerName1" class="player-name-input" placeholder="P1" maxlength="15">
+                    </div>
+                    <div class="player-name-group" style="display:none;">
+                        <label for="playerName2">P2</label>
+                        <input type="text" id="playerName2" class="player-name-input" placeholder="P2" maxlength="15">
+                    </div>
+                    <div class="player-name-group" style="display:none;">
+                        <label for="playerName3">P3</label>
+                        <input type="text" id="playerName3" class="player-name-input" placeholder="P3" maxlength="15">
+                    </div>
+                    <div class="player-name-group" style="display:none;">
+                        <label for="playerName4">P4</label>
+                        <input type="text" id="playerName4" class="player-name-input" placeholder="P4" maxlength="15">
+                    </div>
+                </div>
+            </div>
+
             <button id="startGameBtn" class="start-menu-btn" type="button">Start Game</button>
         </div>
     </div>
@@ -219,6 +252,22 @@
     <script src="src/UIController.js"></script>
     <script src="src/DebugMode.js"></script>
     <script src="src/main.js"></script>
+
+    <script>
+        // Wire up player count selector buttons
+        document.querySelectorAll('.player-count-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+
+                // Update name input visibility
+                const playerCount = parseInt(btn.dataset.count, 10);
+                document.querySelectorAll('.player-name-group').forEach((group, i) => {
+                    group.style.display = (i < playerCount) ? 'flex' : 'none';
+                });
+            });
+        });
+    </script>
 </body>
 </html>
 
