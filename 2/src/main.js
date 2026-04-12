@@ -426,7 +426,7 @@ class Game {
         // Update renderer
         if (this.renderer) {
             this.renderer.updateAgents(this.agents);
-            this.renderer.updateAgentPaths(this.agents);
+            // this.renderer.updateAgentPaths(this.agents);  // Disabled: Hide NPC path visualization
             this.renderer.updateTraffic(this.board);
         }
 
@@ -660,7 +660,7 @@ class Game {
 
         if (this.renderer) {
             this.renderer.updateAgents(this.agents);
-            this.renderer.updateAgentPaths(this.agents);
+            // this.renderer.updateAgentPaths(this.agents);  // Disabled: Hide NPC path visualization
             this.renderer.updateTraffic(this.board);
         }
 

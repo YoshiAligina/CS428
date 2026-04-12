@@ -1506,7 +1506,7 @@ class Renderer {
         }
 
         // Create initial path visualizations for the player
-        this.updateAgentPaths(agentsToRender);
+        // this.updateAgentPaths(agentsToRender);  // Disabled: Hide NPC path visualization
         this.updateObjectiveHighlights(playerAgent);
     }
 

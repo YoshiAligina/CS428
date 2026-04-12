@@ -31,7 +31,7 @@ class DebugMode {
 
         // Debug state
         this.enabled = false;
-        this.showPaths = true;
+        this.showPaths = false;
         this.showLabels = true;
         this.showCongestion = true;
         this.showGraph = true;
