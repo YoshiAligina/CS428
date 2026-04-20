@@ -24,6 +24,35 @@ function getGameConstants() {
 }
 
 class Game {
+    static BUMP_BLOCKER_LINES = [
+        "Hey, I'm walking here!",
+        "Watch it, pal!",
+        "Excuse you!",
+        "Hey! Eyes up!",
+        "Whoa whoa whoa!",
+    ];
+
+    static BUMP_BUMPER_LINES = [
+        "My bad!",
+        "Sorry!",
+        "Outta my way!",
+        "Move it!",
+        "Coming through!",
+    ];
+
+    static CONGESTION_LINES = [
+        "Ugh, traffic!",
+        "Why is it so packed?",
+        "I'm gonna be late!",
+        "C'mon, move!",
+        "Gridlock again?",
+    ];
+
+    static pickPhrase(list) {
+        if (!Array.isArray(list) || list.length === 0) return '';
+        return list[Math.floor(Math.random() * list.length)];
+    }
+
     /**
      * Create Game instance
      * @param {number} playerCount - Number of human players (1-4)
@@ -382,6 +411,23 @@ class Game {
         this.turnManager.on('gameFinished', (data) => {
         });
 
+        // Speech bubbles for collisions and congestion slowdowns
+        this.turnManager.on('agentBumped', ({ agent, blocker }) => {
+            if (!this.renderer || !this.renderer.showSpeechBubble) return;
+            const blockerLine = Game.pickPhrase(Game.BUMP_BLOCKER_LINES);
+            const bumperLine = Game.pickPhrase(Game.BUMP_BUMPER_LINES);
+            if (blocker) this.renderer.showSpeechBubble(blocker.id, blockerLine, 1800);
+            if (agent)   this.renderer.showSpeechBubble(agent.id, bumperLine, 1500);
+        });
+
+        this.turnManager.on('agentSlowed', ({ agent, congestion }) => {
+            if (!this.renderer || !this.renderer.showSpeechBubble || !agent) return;
+            // Only chatter for noticeable congestion, otherwise it gets spammy
+            if (congestion >= 3 && Math.random() < 0.6) {
+                this.renderer.showSpeechBubble(agent.id, Game.pickPhrase(Game.CONGESTION_LINES), 1600);
+            }
+        });
+
     }
 
     /**
@@ -660,6 +706,22 @@ class Game {
         const targetTile = this.board.getTile(targetX, targetY);
         if (!this.canPlayerEnterTile(player, targetTile, targetX, targetY)) {
             this.setMovementDebug(`Blocked: tile unavailable at (${targetX}, ${targetY})`);
+            return false;
+        }
+
+        // Bump check: someone is already standing on the tile we want to step into
+        const blocker = this.agents.find(other =>
+            other !== player &&
+            other.status !== Agent.STATUS.FAILED &&
+            other.currentLocation.x === targetX &&
+            other.currentLocation.y === targetY
+        );
+        if (blocker) {
+            if (this.renderer && this.renderer.showSpeechBubble) {
+                this.renderer.showSpeechBubble(blocker.id, Game.pickPhrase(Game.BUMP_BLOCKER_LINES), 1800);
+                this.renderer.showSpeechBubble(player.id, Game.pickPhrase(Game.BUMP_BUMPER_LINES), 1500);
+            }
+            this.setMovementDebug(`Bumped into agent ${blocker.id} at (${targetX}, ${targetY})`);
             return false;
         }
 

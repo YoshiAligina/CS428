@@ -51,6 +51,7 @@ class Renderer {
         this.agentPhotoCameraMeshes = new Map(); // Key: agent.id, Value: THREE.Sprite (camera icon)
         this.agentRoleRingMeshes = new Map(); // Key: agent.id, Value: THREE.Mesh (player/npc role ring)
         this.agentRoleLabelMeshes = new Map(); // Key: agent.id, Value: THREE.Sprite (YOU/NPC label)
+        this.agentSpeechBubbleMeshes = new Map(); // Key: agent.id, Value: THREE.Sprite (speech bubble)
         this.trafficOverlays = new Map(); // Key: "x,y", Value: THREE.Mesh (congestion/blocking)
         this.agentPathMeshes = new Map(); // Key: agent.id, Value: THREE.LineSegments (multi-segment path)
         this.agentAnimations = new Map(); // Key: agent.id, Value: {from, to, progress, duration, startTime}
@@ -1888,6 +1889,12 @@ class Renderer {
 
             this.scene.add(cameraSprite);
             this.agentPhotoCameraMeshes.set(agent.id.toString(), cameraSprite);
+
+            // Create speech bubble sprite (hidden by default)
+            const bubbleSprite = this.createSpeechBubbleSprite();
+            bubbleSprite.position.set(agent.currentLocation.x, 1.7, agent.currentLocation.y);
+            this.scene.add(bubbleSprite);
+            this.agentSpeechBubbleMeshes.set(agent.id.toString(), bubbleSprite);
         }
 
         // Create initial path visualizations for the player
@@ -1913,9 +1920,163 @@ class Renderer {
         removeAll(this.agentPhotoCameraMeshes);
         removeAll(this.agentRoleRingMeshes);
         removeAll(this.agentRoleLabelMeshes);
+        removeAll(this.agentSpeechBubbleMeshes);
         removeAll(this.agentPathMeshes);
         this.agentAnimations.clear();
         this.clearObjectiveHighlights();
+    }
+
+    /**
+     * Create a speech bubble sprite (canvas-backed, hidden by default)
+     * @returns {THREE.Sprite}
+     */
+    createSpeechBubbleSprite() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 112;
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            depthTest: false,
+            depthWrite: false,
+            opacity: 0.0,
+        });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(2.6, 1.15, 1);
+        sprite.visible = false;
+        sprite.userData.canvas = canvas;
+        sprite.userData.texture = texture;
+        sprite.userData.expiresAt = 0;
+        sprite.userData.fadeOutAt = 0;
+        sprite.userData.shownAt = 0;
+        return sprite;
+    }
+
+    /**
+     * Paint the speech bubble background and text onto its canvas
+     * @param {HTMLCanvasElement} canvas
+     * @param {string} text
+     */
+    drawSpeechBubble(canvas, text) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        const padX = 14;
+        const bodyTop = 8;
+        const bodyBottom = h - 24;
+        const radius = 18;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.97)';
+        ctx.strokeStyle = '#1a1a1a';
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+        ctx.moveTo(padX + radius, bodyTop);
+        ctx.lineTo(w - padX - radius, bodyTop);
+        ctx.quadraticCurveTo(w - padX, bodyTop, w - padX, bodyTop + radius);
+        ctx.lineTo(w - padX, bodyBottom - radius);
+        ctx.quadraticCurveTo(w - padX, bodyBottom, w - padX - radius, bodyBottom);
+
+        const tailX = w / 2;
+        ctx.lineTo(tailX + 14, bodyBottom);
+        ctx.lineTo(tailX, bodyBottom + 20);
+        ctx.lineTo(tailX - 14, bodyBottom);
+
+        ctx.lineTo(padX + radius, bodyBottom);
+        ctx.quadraticCurveTo(padX, bodyBottom, padX, bodyBottom - radius);
+        ctx.lineTo(padX, bodyTop + radius);
+        ctx.quadraticCurveTo(padX, bodyTop, padX + radius, bodyTop);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#1a1a1a';
+        ctx.font = 'bold 22px "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const maxWidth = w - padX * 2 - 12;
+        const words = String(text || '').split(/\s+/).filter(Boolean);
+        const lines = [];
+        let line = '';
+        for (const word of words) {
+            const test = line ? line + ' ' + word : word;
+            if (ctx.measureText(test).width > maxWidth && line) {
+                lines.push(line);
+                line = word;
+            } else {
+                line = test;
+            }
+        }
+        if (line) lines.push(line);
+
+        const lineHeight = 26;
+        const centerY = (bodyTop + bodyBottom) / 2;
+        const startY = centerY - ((lines.length - 1) / 2) * lineHeight;
+        for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], w / 2, startY + i * lineHeight);
+        }
+    }
+
+    /**
+     * Pop a speech bubble above an agent
+     * @param {string|number} agentId
+     * @param {string} text
+     * @param {number} durationMs
+     */
+    showSpeechBubble(agentId, text, durationMs = 1800) {
+        if (agentId === undefined || agentId === null) return;
+        const id = agentId.toString();
+        const bubble = this.agentSpeechBubbleMeshes.get(id);
+        if (!bubble) return;
+
+        this.drawSpeechBubble(bubble.userData.canvas, text);
+        bubble.userData.texture.needsUpdate = true;
+
+        const now = Date.now();
+        bubble.visible = true;
+        bubble.material.opacity = 1.0;
+        bubble.userData.shownAt = now;
+        bubble.userData.expiresAt = now + durationMs;
+        bubble.userData.fadeOutAt = bubble.userData.expiresAt - 350;
+    }
+
+    /**
+     * Per-frame update: keep bubbles tracking their agent and fade them out
+     */
+    updateSpeechBubbles() {
+        const now = Date.now();
+        this.agentSpeechBubbleMeshes.forEach((bubble, agentId) => {
+            const agentMesh = this.agentMeshes.get(agentId);
+            if (agentMesh) {
+                bubble.position.x = agentMesh.position.x;
+                bubble.position.z = agentMesh.position.z;
+                const wobble = Math.sin(now / 200) * 0.04;
+                bubble.position.y = 1.7 + wobble;
+            }
+
+            if (!bubble.visible) return;
+
+            const expiresAt = bubble.userData.expiresAt || 0;
+            const fadeOutAt = bubble.userData.fadeOutAt || 0;
+
+            if (now >= expiresAt) {
+                bubble.visible = false;
+                bubble.material.opacity = 0;
+                return;
+            }
+
+            if (now >= fadeOutAt) {
+                const fadeDur = Math.max(1, expiresAt - fadeOutAt);
+                const remaining = expiresAt - now;
+                bubble.material.opacity = Math.max(0, remaining / fadeDur);
+            } else {
+                bubble.material.opacity = 1.0;
+            }
+        });
     }
 
     /**
@@ -2958,6 +3119,9 @@ class Renderer {
         
         // Update agent glow/pulse
         this.updateAgentGlow();
+
+        // Update speech bubbles (track agents, fade out)
+        this.updateSpeechBubbles();
 
         if (this.renderer && this.scene && this.camera) {
             this.renderer.render(this.scene, this.camera);

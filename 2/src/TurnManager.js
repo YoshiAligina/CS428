@@ -453,14 +453,41 @@ class TurnManager {
                 const nextPosition = agent.plannedPath[agent.pathIndex];
                 const nextTile = this.board.getTile(nextPosition.x, nextPosition.y);
 
-                if (nextTile && nextTile.congestion >= this.config.congestionThreshold) {
-                    if (Math.random() < this.config.congestionSlowChance) {
+                // Bump check: another agent already standing on the tile we want to step into
+                const blocker = this.agents.find(other =>
+                    other !== agent &&
+                    other.status !== Agent.STATUS.FAILED &&
+                    other.currentLocation.x === nextPosition.x &&
+                    other.currentLocation.y === nextPosition.y
+                );
+                if (blocker) {
+                    this.emit('agentBumped', {
+                        agent,
+                        blocker,
+                        x: nextPosition.x,
+                        y: nextPosition.y,
+                    });
+                    agent.decrementTurns();
+                    continue;
+                }
+
+                // Congestion-scaled slowdown: chance grows with congestion level (no hard threshold)
+                if (nextTile && nextTile.congestion > 0 && this.config.congestionThreshold > 0) {
+                    const ratio = nextTile.congestion / this.config.congestionThreshold;
+                    const slowChance = Math.min(0.95, ratio * this.config.congestionSlowChance);
+                    if (Math.random() < slowChance) {
                         // Check if agent can skip traffic jam (from MUSEUM bonus)
                         if (agent.skipNextTrafficJam) {
                             agent.skipNextTrafficJam = false;
                             console.log(`Agent ${agent.id} skipped a traffic jam using museum bonus!`);
                         } else {
                             nextTile.increaseCongestion();
+                            this.emit('agentSlowed', {
+                                agent,
+                                x: nextPosition.x,
+                                y: nextPosition.y,
+                                congestion: nextTile.congestion,
+                            });
                             agent.decrementTurns();
                             continue;
                         }
