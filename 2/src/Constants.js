@@ -28,10 +28,31 @@ const GAME_CONSTANTS = {
     ROAD_ADJACENT_CHANCE: 0.4,
 };
 
+const MAP_SIZE_PRESETS = {
+    small:  { GRID_SIZE: 12, TURN_LIMIT: 40 },
+    medium: { GRID_SIZE: 16, TURN_LIMIT: 50 },
+    large:  { GRID_SIZE: 22, TURN_LIMIT: 70 },
+};
+
+const DIFFICULTY_PRESETS = {
+    easy:   { ACCIDENT_PROBABILITY: 0.015, ACCIDENT_BLOCK_TURNS: 2, CONGESTION_THRESHOLD: 6, CONGESTION_SLOW_CHANCE: 0.3 },
+    normal: { ACCIDENT_PROBABILITY: 0.03,  ACCIDENT_BLOCK_TURNS: 3, CONGESTION_THRESHOLD: 4, CONGESTION_SLOW_CHANCE: 0.5 },
+    hard:   { ACCIDENT_PROBABILITY: 0.05,  ACCIDENT_BLOCK_TURNS: 4, CONGESTION_THRESHOLD: 3, CONGESTION_SLOW_CHANCE: 0.7 },
+};
+
+function applyGameSettings({ mapSize, difficulty } = {}) {
+    const map = MAP_SIZE_PRESETS[mapSize] || MAP_SIZE_PRESETS.medium;
+    const diff = DIFFICULTY_PRESETS[difficulty] || DIFFICULTY_PRESETS.normal;
+    Object.assign(GAME_CONSTANTS, map, diff);
+}
+
 if (typeof window !== 'undefined') {
     window.GAME_CONSTANTS = GAME_CONSTANTS;
+    window.MAP_SIZE_PRESETS = MAP_SIZE_PRESETS;
+    window.DIFFICULTY_PRESETS = DIFFICULTY_PRESETS;
+    window.applyGameSettings = applyGameSettings;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = GAME_CONSTANTS;
+    module.exports = { GAME_CONSTANTS, MAP_SIZE_PRESETS, DIFFICULTY_PRESETS, applyGameSettings };
 }

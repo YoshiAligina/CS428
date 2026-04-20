@@ -22,6 +22,24 @@
                 </div>
             </div>
 
+            <div class="player-count-section">
+                <p class="player-count-label">Map Size</p>
+                <div class="player-count-selector option-selector">
+                    <button class="option-btn" data-map-size="small" type="button">Small</button>
+                    <button class="option-btn selected" data-map-size="medium" type="button">Medium</button>
+                    <button class="option-btn" data-map-size="large" type="button">Large</button>
+                </div>
+            </div>
+
+            <div class="player-count-section">
+                <p class="player-count-label">Difficulty</p>
+                <div class="player-count-selector option-selector">
+                    <button class="option-btn" data-difficulty="easy" type="button">Easy</button>
+                    <button class="option-btn selected" data-difficulty="normal" type="button">Normal</button>
+                    <button class="option-btn" data-difficulty="hard" type="button">Hard</button>
+                </div>
+            </div>
+
             <div class="player-names-section">
                 <p class="player-names-label">Player Names (leave blank for defaults)</p>
                 <div class="player-names-inputs">
@@ -264,6 +282,17 @@
                 const playerCount = parseInt(btn.dataset.count, 10);
                 document.querySelectorAll('.player-name-group').forEach((group, i) => {
                     group.style.display = (i < playerCount) ? 'flex' : 'none';
+                });
+            });
+        });
+
+        // Wire up single-select option groups (Map Size, Difficulty)
+        ['map-size', 'difficulty'].forEach(group => {
+            const selector = `[data-${group}]`;
+            document.querySelectorAll(selector).forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll(selector).forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
                 });
             });
         });

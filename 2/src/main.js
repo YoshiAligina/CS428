@@ -843,6 +843,13 @@ function initializeAndStartGame() {
             return btn ? parseInt(btn.dataset.count, 10) : 1;
         })();
 
+        // Apply map size + difficulty selections to GAME_CONSTANTS before Board generates
+        const mapSize = document.querySelector('[data-map-size].selected')?.dataset.mapSize || 'medium';
+        const difficulty = document.querySelector('[data-difficulty].selected')?.dataset.difficulty || 'normal';
+        if (typeof window.applyGameSettings === 'function') {
+            window.applyGameSettings({ mapSize, difficulty });
+        }
+
         // Read player names from input fields
         const playerNames = [];
         for (let i = 0; i < selectedCount; i++) {
