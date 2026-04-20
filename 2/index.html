@@ -40,6 +40,14 @@
                 </div>
             </div>
 
+            <div class="player-count-section">
+                <p class="player-count-label">Theme</p>
+                <div class="player-count-selector option-selector">
+                    <button class="option-btn selected" data-theme="classic" type="button">Classic</button>
+                    <button class="option-btn" data-theme="medieval" type="button">Medieval</button>
+                </div>
+            </div>
+
             <div class="player-names-section">
                 <p class="player-names-label">Player Names (leave blank for defaults)</p>
                 <div class="player-names-inputs">
@@ -286,13 +294,21 @@
             });
         });
 
-        // Wire up single-select option groups (Map Size, Difficulty)
-        ['map-size', 'difficulty'].forEach(group => {
+        // Wire up single-select option groups (Map Size, Difficulty, Theme)
+        ['map-size', 'difficulty', 'theme'].forEach(group => {
             const selector = `[data-${group}]`;
             document.querySelectorAll(selector).forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll(selector).forEach(b => b.classList.remove('selected'));
                     btn.classList.add('selected');
+                    if (group === 'theme') {
+                        const themeValue = btn.dataset.theme;
+                        if (themeValue && themeValue !== 'classic') {
+                            document.body.dataset.theme = themeValue;
+                        } else {
+                            delete document.body.dataset.theme;
+                        }
+                    }
                 });
             });
         });

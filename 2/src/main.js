@@ -850,6 +850,10 @@ function initializeAndStartGame() {
             window.applyGameSettings({ mapSize, difficulty });
         }
 
+        // Capture the selected visual theme so the Renderer can style buildings to match
+        const themeBtn = document.querySelector('[data-theme].selected');
+        window.GAME_THEME = (themeBtn && themeBtn.dataset.theme) || 'classic';
+
         // Read player names from input fields
         const playerNames = [];
         for (let i = 0; i < selectedCount; i++) {

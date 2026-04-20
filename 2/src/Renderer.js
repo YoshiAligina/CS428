@@ -412,6 +412,14 @@ class Renderer {
         const heightNoise = this.noise2D(x, y, 7.77);
         const variation = this.noise2D(x, y, 91.31);
 
+        if (!this._themeLogged) {
+            console.log('[Renderer] building factory — window.GAME_THEME =', JSON.stringify(window.GAME_THEME));
+            this._themeLogged = true;
+        }
+        if (window.GAME_THEME === 'medieval') {
+            return this.createMedievalBuildingMesh(x, y, tileSize, type, heightNoise, variation);
+        }
+
         const group = new THREE.Group();
         let baseColor = 0x8b7355;
         let metalness = 0.2;
@@ -494,6 +502,148 @@ class Renderer {
                 chimney.castShadow = true;
                 group.add(chimney);
             }
+        }
+
+        group.position.set(x, 0, y);
+        return group;
+    }
+
+    /**
+     * Medieval-themed procedural building: cottage / stone tower / keep.
+     */
+    createMedievalBuildingMesh(x, y, tileSize, type, heightNoise, variation) {
+        const group = new THREE.Group();
+        const stoneColor = 0x8f857a;
+        const darkStone = 0x5f574e;
+        const timber = 0x5a3a1f;
+        const roofTile = 0x7a2a1a;
+        const thatch = 0x9a7a3a;
+
+        if (type === 'house') {
+            // Timber-frame cottage: stone lower half + thatched pyramid roof
+            const wallH = 0.8 + heightNoise * 0.4;
+            const w = tileSize * 0.6;
+            const d = tileSize * 0.6;
+            const walls = new THREE.Mesh(
+                new THREE.BoxGeometry(w, wallH, d),
+                new THREE.MeshStandardMaterial({ color: stoneColor, metalness: 0.05, roughness: 0.95 })
+            );
+            walls.position.set(0, wallH / 2, 0);
+            walls.castShadow = true;
+            walls.receiveShadow = true;
+            group.add(walls);
+
+            // Timber cross-beams: two darker boxes on front face
+            const beamMat = new THREE.MeshStandardMaterial({ color: timber, metalness: 0.1, roughness: 0.9 });
+            const beamV = new THREE.Mesh(new THREE.BoxGeometry(w * 0.08, wallH * 0.9, 0.02), beamMat);
+            beamV.position.set(-w * 0.3, wallH / 2, d / 2 + 0.01);
+            const beamV2 = beamV.clone();
+            beamV2.position.x = w * 0.3;
+            group.add(beamV, beamV2);
+
+            // Thatched pyramid roof
+            const roof = new THREE.Mesh(
+                new THREE.ConeGeometry(w * 0.8, wallH * 0.9, 4),
+                new THREE.MeshStandardMaterial({ color: thatch, metalness: 0.0, roughness: 1.0 })
+            );
+            roof.rotation.y = Math.PI / 4;
+            roof.position.set(0, wallH + wallH * 0.45, 0);
+            roof.castShadow = true;
+            group.add(roof);
+        } else if (type === 'office') {
+            // Stone tower with conical tile roof + battlement ring
+            const towerH = 1.8 + heightNoise * 1.6;
+            const radius = tileSize * 0.32;
+            const tower = new THREE.Mesh(
+                new THREE.CylinderGeometry(radius, radius * 1.1, towerH, 12),
+                new THREE.MeshStandardMaterial({ color: stoneColor, metalness: 0.05, roughness: 0.95 })
+            );
+            tower.position.set(0, towerH / 2, 0);
+            tower.castShadow = true;
+            tower.receiveShadow = true;
+            group.add(tower);
+
+            // Battlement ring (short crenellated band)
+            const battlementCount = 10;
+            const battlementMat = new THREE.MeshStandardMaterial({ color: stoneColor, metalness: 0.05, roughness: 0.95 });
+            for (let i = 0; i < battlementCount; i++) {
+                const angle = (i / battlementCount) * Math.PI * 2;
+                const merlon = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.1, 0.18, 0.1),
+                    battlementMat
+                );
+                merlon.position.set(Math.cos(angle) * radius * 1.05, towerH + 0.09, Math.sin(angle) * radius * 1.05);
+                merlon.castShadow = true;
+                group.add(merlon);
+            }
+
+            // Conical tile roof on top
+            const spire = new THREE.Mesh(
+                new THREE.ConeGeometry(radius * 1.1, towerH * 0.5, 12),
+                new THREE.MeshStandardMaterial({ color: roofTile, metalness: 0.1, roughness: 0.8 })
+            );
+            spire.position.set(0, towerH + 0.18 + towerH * 0.25, 0);
+            spire.castShadow = true;
+            group.add(spire);
+
+            // Flag pole + pennant
+            if (variation > 0.3) {
+                const pole = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.02, 0.02, 0.5, 6),
+                    new THREE.MeshStandardMaterial({ color: 0x2a1a0a })
+                );
+                pole.position.set(0, towerH + 0.18 + towerH * 0.5 + 0.25, 0);
+                group.add(pole);
+                const pennant = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.18, 0.1, 0.01),
+                    new THREE.MeshStandardMaterial({ color: 0xc9a568, emissive: 0x3a2a0a, emissiveIntensity: 0.2 })
+                );
+                pennant.position.set(0.09, towerH + 0.18 + towerH * 0.5 + 0.35, 0);
+                group.add(pennant);
+            }
+        } else {
+            // Keep: wide stone block with crenellated rooftop
+            const keepH = 1.0 + heightNoise * 0.6;
+            const w = tileSize * 0.85;
+            const d = tileSize * 0.85;
+            const keep = new THREE.Mesh(
+                new THREE.BoxGeometry(w, keepH, d),
+                new THREE.MeshStandardMaterial({ color: darkStone, metalness: 0.05, roughness: 0.95 })
+            );
+            keep.position.set(0, keepH / 2, 0);
+            keep.castShadow = true;
+            keep.receiveShadow = true;
+            group.add(keep);
+
+            // Crenellations along the four edges
+            const merlonMat = new THREE.MeshStandardMaterial({ color: darkStone, metalness: 0.05, roughness: 0.95 });
+            const merlonSize = 0.12;
+            const merlonY = keepH + merlonSize / 2;
+            const edgeCount = 4;
+            for (let i = 0; i < edgeCount; i++) {
+                const t = (i + 0.5) / edgeCount;
+                const offs = (t - 0.5) * w * 0.9;
+                const positions = [
+                    [offs, merlonY,  d / 2],
+                    [offs, merlonY, -d / 2],
+                    [ w / 2, merlonY, offs],
+                    [-w / 2, merlonY, offs],
+                ];
+                for (const [mx, my, mz] of positions) {
+                    const merlon = new THREE.Mesh(new THREE.BoxGeometry(merlonSize, merlonSize, merlonSize), merlonMat);
+                    merlon.position.set(mx, my, mz);
+                    merlon.castShadow = true;
+                    group.add(merlon);
+                }
+            }
+
+            // Small door
+            const door = new THREE.Mesh(
+                new THREE.BoxGeometry(w * 0.2, keepH * 0.45, 0.02),
+                new THREE.MeshStandardMaterial({ color: timber, metalness: 0.1, roughness: 0.9 })
+            );
+            door.position.set(0, keepH * 0.22, d / 2 + 0.01);
+            group.add(door);
         }
 
         group.position.set(x, 0, y);
@@ -1066,6 +1216,9 @@ class Renderer {
      * @returns {THREE.Group} Hospital mesh group
      */
     createHospitalMesh(x, y, tileSize) {
+        if (window.GAME_THEME === 'medieval') {
+            return this.createMedievalMonasteryMesh(x, y, tileSize);
+        }
         const group = new THREE.Group();
 
         const baseHeight = tileSize * 0.9;
@@ -1119,6 +1272,9 @@ class Renderer {
      * @returns {THREE.Group} Jail mesh group
      */
     createJailMesh(x, y, tileSize) {
+        if (window.GAME_THEME === 'medieval') {
+            return this.createMedievalDungeonMesh(x, y, tileSize);
+        }
         const group = new THREE.Group();
 
         const baseHeight = tileSize * 1.0;
@@ -1168,6 +1324,9 @@ class Renderer {
      * @returns {THREE.Group} Cafe mesh group
      */
     createCafeMesh(x, y, tileSize) {
+        if (window.GAME_THEME === 'medieval') {
+            return this.createMedievalTavernMesh(x, y, tileSize);
+        }
         const group = new THREE.Group();
 
         const baseHeight = tileSize * 0.8;
@@ -1225,6 +1384,228 @@ class Renderer {
         const roof = new THREE.Mesh(roofGeometry, roofMaterial);
         roof.position.set(0, baseHeight + tileSize * 0.05, 0);
         group.add(roof);
+
+        group.position.set(x, 0, y);
+        return group;
+    }
+
+    /**
+     * Medieval variant of hospital: stone chapel with steeple and red cross.
+     */
+    createMedievalMonasteryMesh(x, y, tileSize) {
+        const group = new THREE.Group();
+        const stone = 0xe8e1d0;
+        const trim = 0x7f7566;
+
+        const baseH = tileSize * 0.9;
+        const base = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.85, baseH, tileSize * 0.85),
+            new THREE.MeshStandardMaterial({ color: stone, metalness: 0.05, roughness: 0.9 })
+        );
+        base.position.set(0, baseH / 2, 0);
+        base.castShadow = true;
+        base.receiveShadow = true;
+        group.add(base);
+
+        // Pitched stone roof (4-sided pyramid)
+        const roof = new THREE.Mesh(
+            new THREE.ConeGeometry(tileSize * 0.65, tileSize * 0.5, 4),
+            new THREE.MeshStandardMaterial({ color: trim, metalness: 0.05, roughness: 0.9 })
+        );
+        roof.rotation.y = Math.PI / 4;
+        roof.position.set(0, baseH + tileSize * 0.25, 0);
+        roof.castShadow = true;
+        group.add(roof);
+
+        // Red cross on top (preserves hospital semantics)
+        const crossMat = new THREE.MeshStandardMaterial({
+            color: 0xc02020,
+            metalness: 0.1,
+            roughness: 0.5,
+            emissive: 0x7a1010,
+            emissiveIntensity: 0.4,
+        });
+        const bar = tileSize * 0.06;
+        const vertical = new THREE.Mesh(new THREE.BoxGeometry(bar, tileSize * 0.4, bar), crossMat);
+        vertical.position.set(0, baseH + tileSize * 0.7, 0);
+        const horizontal = new THREE.Mesh(new THREE.BoxGeometry(tileSize * 0.3, bar, bar), crossMat);
+        horizontal.position.set(0, baseH + tileSize * 0.72, 0);
+        group.add(vertical, horizontal);
+
+        // Arched wooden door
+        const door = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.18, baseH * 0.5, 0.02),
+            new THREE.MeshStandardMaterial({ color: 0x4a2a10, metalness: 0.1, roughness: 0.9 })
+        );
+        door.position.set(0, baseH * 0.25, tileSize * 0.43);
+        group.add(door);
+
+        group.position.set(x, 0, y);
+        return group;
+    }
+
+    /**
+     * Medieval variant of jail: dark stone dungeon tower with iron-barred window.
+     */
+    createMedievalDungeonMesh(x, y, tileSize) {
+        const group = new THREE.Group();
+        const darkStone = 0x4a4238;
+        const iron = 0x2a2a2a;
+
+        const baseH = tileSize * 1.1;
+        const base = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.9, baseH, tileSize * 0.9),
+            new THREE.MeshStandardMaterial({
+                color: darkStone,
+                metalness: 0.15,
+                roughness: 0.9,
+                emissive: 0x1a1510,
+                emissiveIntensity: 0.15,
+            })
+        );
+        base.position.set(0, baseH / 2, 0);
+        base.castShadow = true;
+        base.receiveShadow = true;
+        group.add(base);
+
+        // Crenellated top
+        const merlonMat = new THREE.MeshStandardMaterial({ color: darkStone, metalness: 0.15, roughness: 0.9 });
+        const merlonCount = 5;
+        const w = tileSize * 0.9;
+        for (let i = 0; i < merlonCount; i++) {
+            const t = (i + 0.5) / merlonCount;
+            const offs = (t - 0.5) * w * 0.9;
+            const positions = [
+                [offs, baseH + 0.08,  w / 2],
+                [offs, baseH + 0.08, -w / 2],
+                [ w / 2, baseH + 0.08, offs],
+                [-w / 2, baseH + 0.08, offs],
+            ];
+            for (const [mx, my, mz] of positions) {
+                const merlon = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.14), merlonMat);
+                merlon.position.set(mx, my, mz);
+                merlon.castShadow = true;
+                group.add(merlon);
+            }
+        }
+
+        // Iron bars across a slit window on the front face
+        const barMat = new THREE.MeshStandardMaterial({ color: iron, metalness: 0.7, roughness: 0.4 });
+        const windowY = baseH * 0.6;
+        for (let i = 0; i < 4; i++) {
+            const offset = (i - 1.5) * (tileSize * 0.08);
+            const vbar = new THREE.Mesh(
+                new THREE.BoxGeometry(tileSize * 0.025, baseH * 0.3, 0.02),
+                barMat
+            );
+            vbar.position.set(offset, windowY, tileSize * 0.46);
+            group.add(vbar);
+        }
+
+        // Heavy iron-banded door
+        const door = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.22, baseH * 0.45, 0.02),
+            new THREE.MeshStandardMaterial({ color: 0x2a1a0a, metalness: 0.2, roughness: 0.9 })
+        );
+        door.position.set(0, baseH * 0.22, tileSize * 0.46);
+        group.add(door);
+
+        group.position.set(x, 0, y);
+        return group;
+    }
+
+    /**
+     * Medieval variant of cafe: timber-frame tavern with thatched gable roof.
+     */
+    createMedievalTavernMesh(x, y, tileSize) {
+        const group = new THREE.Group();
+        const plaster = 0xe0cfa8;
+        const timber = 0x4a2a10;
+        const thatch = 0xc99d4a;
+        const windowGlow = 0xffc966;
+
+        const baseH = tileSize * 0.75;
+        const base = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.85, baseH, tileSize * 0.85),
+            new THREE.MeshStandardMaterial({ color: plaster, metalness: 0.05, roughness: 0.9 })
+        );
+        base.position.set(0, baseH / 2, 0);
+        base.castShadow = true;
+        base.receiveShadow = true;
+        group.add(base);
+
+        // Timber cross-beams on front and back faces
+        const beamMat = new THREE.MeshStandardMaterial({ color: timber, metalness: 0.1, roughness: 0.9 });
+        const beamW = tileSize * 0.04;
+        const beamPositions = [
+            // verticals front
+            [-tileSize * 0.3, baseH / 2,  tileSize * 0.425 + 0.01],
+            [ tileSize * 0.3, baseH / 2,  tileSize * 0.425 + 0.01],
+            // verticals back
+            [-tileSize * 0.3, baseH / 2, -tileSize * 0.425 - 0.01],
+            [ tileSize * 0.3, baseH / 2, -tileSize * 0.425 - 0.01],
+        ];
+        for (const [bx, by, bz] of beamPositions) {
+            const beam = new THREE.Mesh(new THREE.BoxGeometry(beamW, baseH * 0.95, 0.02), beamMat);
+            beam.position.set(bx, by, bz);
+            group.add(beam);
+        }
+        // Horizontal mid beam on front
+        const hBeam = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.85, beamW, 0.02),
+            beamMat
+        );
+        hBeam.position.set(0, baseH * 0.55, tileSize * 0.425 + 0.01);
+        group.add(hBeam);
+
+        // Glowing window (lantern light)
+        const windowMat = new THREE.MeshStandardMaterial({
+            color: windowGlow,
+            emissive: 0xffaa33,
+            emissiveIntensity: 0.75,
+            metalness: 0.1,
+            roughness: 0.3,
+        });
+        const windowPositions = [
+            { x: -tileSize * 0.15, z: tileSize * 0.435 },
+            { x:  tileSize * 0.15, z: tileSize * 0.435 },
+        ];
+        for (const pos of windowPositions) {
+            const w = new THREE.Mesh(
+                new THREE.BoxGeometry(tileSize * 0.12, tileSize * 0.14, 0.02),
+                windowMat
+            );
+            w.position.set(pos.x, baseH * 0.7, pos.z);
+            group.add(w);
+        }
+
+        // Thatched gable roof — two sloped boxes rotated into an A-shape
+        const roofMat = new THREE.MeshStandardMaterial({ color: thatch, metalness: 0.0, roughness: 1.0 });
+        const slopeW = tileSize * 0.95;
+        const slopeL = tileSize * 0.55;
+        const slope1 = new THREE.Mesh(new THREE.BoxGeometry(slopeW, 0.04, slopeL), roofMat);
+        slope1.position.set(0, baseH + tileSize * 0.2, tileSize * 0.18);
+        slope1.rotation.x = -Math.PI / 5;
+        slope1.castShadow = true;
+        group.add(slope1);
+        const slope2 = slope1.clone();
+        slope2.position.set(0, baseH + tileSize * 0.2, -tileSize * 0.18);
+        slope2.rotation.x = Math.PI / 5;
+        group.add(slope2);
+
+        // Hanging tavern sign
+        const signPole = new THREE.Mesh(
+            new THREE.BoxGeometry(0.03, tileSize * 0.25, 0.03),
+            new THREE.MeshStandardMaterial({ color: timber })
+        );
+        signPole.position.set(tileSize * 0.46, baseH * 0.8, tileSize * 0.46);
+        group.add(signPole);
+        const sign = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.18, tileSize * 0.12, 0.02),
+            new THREE.MeshStandardMaterial({ color: 0xffd43b, emissive: 0x7a5510, emissiveIntensity: 0.3 })
+        );
+        sign.position.set(tileSize * 0.38, baseH * 0.6, tileSize * 0.46);
+        group.add(sign);
 
         group.position.set(x, 0, y);
         return group;
