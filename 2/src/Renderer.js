@@ -295,6 +295,123 @@ class Renderer {
     }
 
     /**
+     * Build (and cache) a canvas-painted texture for road / intersection tiles
+     * matching the active theme. Called per tile type but cached on this.
+     * @param {string} kind - 'road' | 'intersection'
+     * @returns {THREE.CanvasTexture}
+     */
+    getRoadTexture(kind) {
+        const theme = window.GAME_THEME || 'classic';
+        const cacheKey = `${kind}:${theme}`;
+        if (!this._roadTextureCache) this._roadTextureCache = new Map();
+        const cached = this._roadTextureCache.get(cacheKey);
+        if (cached) return cached;
+
+        const size = 128;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        if (theme === 'medieval') {
+            // Dirt road with cobblestone specks
+            const base = kind === 'intersection' ? '#a8886a' : '#7d5b3c';
+            ctx.fillStyle = base;
+            ctx.fillRect(0, 0, size, size);
+            // Random stones
+            for (let i = 0; i < 70; i++) {
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                const r = 3 + Math.random() * 6;
+                const shade = 60 + Math.random() * 50;
+                ctx.fillStyle = `rgba(${shade}, ${Math.floor(shade * 0.75)}, ${Math.floor(shade * 0.5)}, 0.7)`;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Darker grout cracks
+            ctx.strokeStyle = 'rgba(40, 25, 15, 0.4)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 12; i++) {
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * size, Math.random() * size);
+                ctx.lineTo(Math.random() * size, Math.random() * size);
+                ctx.stroke();
+            }
+        } else if (theme === 'futuristic') {
+            // Dark panel with cyan grid lines
+            ctx.fillStyle = kind === 'intersection' ? '#0a1424' : '#060c18';
+            ctx.fillRect(0, 0, size, size);
+            // Subtle inner glow
+            const grad = ctx.createRadialGradient(size / 2, size / 2, 10, size / 2, size / 2, size / 1.4);
+            grad.addColorStop(0, 'rgba(0, 229, 255, 0.10)');
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+            // Glowing cyan grid lines
+            ctx.strokeStyle = kind === 'intersection' ? '#00f6ff' : '#0099b8';
+            ctx.lineWidth = kind === 'intersection' ? 2 : 1.5;
+            ctx.shadowColor = '#00e5ff';
+            ctx.shadowBlur = 6;
+            // Border
+            ctx.strokeRect(2, 2, size - 4, size - 4);
+            // Cross
+            ctx.beginPath();
+            ctx.moveTo(size / 2, 4);
+            ctx.lineTo(size / 2, size - 4);
+            ctx.moveTo(4, size / 2);
+            ctx.lineTo(size - 4, size / 2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            // Magenta corner accents on intersections
+            if (kind === 'intersection') {
+                ctx.fillStyle = '#ff39c5';
+                const cornerSize = 8;
+                const positions = [[6, 6], [size - 14, 6], [6, size - 14], [size - 14, size - 14]];
+                for (const [cx, cy] of positions) {
+                    ctx.fillRect(cx, cy, cornerSize, cornerSize);
+                }
+            }
+        } else {
+            // Classic: dark asphalt with dashed yellow center line
+            ctx.fillStyle = kind === 'intersection' ? '#5a5a5a' : '#3c3c3c';
+            ctx.fillRect(0, 0, size, size);
+            // Asphalt speckle
+            for (let i = 0; i < 200; i++) {
+                const px = Math.floor(Math.random() * size);
+                const py = Math.floor(Math.random() * size);
+                const v = Math.floor(40 + Math.random() * 50);
+                ctx.fillStyle = `rgb(${v},${v},${v})`;
+                ctx.fillRect(px, py, 1, 1);
+            }
+            // Lane markings
+            ctx.fillStyle = '#f0c93a';
+            if (kind === 'intersection') {
+                // Plus sign
+                ctx.fillRect(size / 2 - 3, 0, 6, size);
+                ctx.fillRect(0, size / 2 - 3, size, 6);
+            } else {
+                // Dashed center stripe
+                const dashH = 14;
+                const gapH = 14;
+                let yPos = 6;
+                while (yPos < size) {
+                    ctx.fillRect(size / 2 - 3, yPos, 6, Math.min(dashH, size - yPos));
+                    yPos += dashH + gapH;
+                }
+            }
+        }
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.anisotropy = 4;
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.needsUpdate = true;
+        this._roadTextureCache.set(cacheKey, texture);
+        return texture;
+    }
+
+    /**
      * Create a text label sprite that always faces the camera.
      * @param {string} text
      * @param {Object} opts - {bgColor, textColor, borderColor, fontSize, padding, scale}
@@ -431,41 +548,37 @@ class Renderer {
                     mesh = this.createBuildingMesh(x, y, tileSize, 'office');
 
                 } else if (tile.type === 'INTERSECTION') {
-                    // Intersection: lighter gray plane
-                    const geometry = new THREE.PlaneGeometry(
-                        tileSize * 0.95,
-                        tileSize * 0.95
-                    );
-
-                    const color = new THREE.Color().setHex(0x555555); // Lighter gray
+                    const geometry = new THREE.PlaneGeometry(tileSize * 0.95, tileSize * 0.95);
+                    const texture = this.getRoadTexture('intersection');
+                    const isFuturistic = window.GAME_THEME === 'futuristic';
                     const material = new THREE.MeshStandardMaterial({
-                        color: color,
-                        metalness: 0.3,
-                        roughness: 0.7,
+                        map: texture,
+                        metalness: isFuturistic ? 0.6 : 0.3,
+                        roughness: isFuturistic ? 0.45 : 0.7,
+                        emissive: isFuturistic ? 0x00263a : 0x000000,
+                        emissiveMap: isFuturistic ? texture : null,
+                        emissiveIntensity: isFuturistic ? 0.4 : 0.0,
                     });
-
                     mesh = new THREE.Mesh(geometry, material);
-                    mesh.rotation.x = -Math.PI / 2; // Lay flat
-                    mesh.position.set(x, 0.01, y); // Slightly above ground
+                    mesh.rotation.x = -Math.PI / 2;
+                    mesh.position.set(x, 0.01, y);
                     mesh.receiveShadow = true;
 
                 } else if (tile.type === 'ROAD') {
-                    // Road: dark gray plane
-                    const geometry = new THREE.PlaneGeometry(
-                        tileSize * 0.95,
-                        tileSize * 0.95
-                    );
-
-                    const color = new THREE.Color().setHex(0x444444); // Dark gray
+                    const geometry = new THREE.PlaneGeometry(tileSize * 0.95, tileSize * 0.95);
+                    const texture = this.getRoadTexture('road');
+                    const isFuturistic = window.GAME_THEME === 'futuristic';
                     const material = new THREE.MeshStandardMaterial({
-                        color: color,
-                        metalness: 0.4,
-                        roughness: 0.6,
+                        map: texture,
+                        metalness: isFuturistic ? 0.55 : 0.35,
+                        roughness: isFuturistic ? 0.5 : 0.7,
+                        emissive: isFuturistic ? 0x001a26 : 0x000000,
+                        emissiveMap: isFuturistic ? texture : null,
+                        emissiveIntensity: isFuturistic ? 0.3 : 0.0,
                     });
-
                     mesh = new THREE.Mesh(geometry, material);
-                    mesh.rotation.x = -Math.PI / 2; // Lay flat
-                    mesh.position.set(x, 0.01, y); // Slightly above ground
+                    mesh.rotation.x = -Math.PI / 2;
+                    mesh.position.set(x, 0.01, y);
                     mesh.receiveShadow = true;
 
                 } else if (tile.type === 'HOSPITAL') {
