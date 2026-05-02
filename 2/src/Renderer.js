@@ -87,8 +87,8 @@ class Renderer {
         this.ambientLight = null;
 
         // Camera settings for isometric view
-        this.cameraDistance = 40;         // Distance from board center
-        this.cameraHeight = 30;            // Height above board
+        this.cameraDistance = 28;         // Distance from board center
+        this.cameraHeight = 22;            // Height above board
         this.boardCenter = {
             x: board.width / 2,
             y: board.height / 2,
@@ -200,7 +200,7 @@ class Renderer {
      */
     setupControls() {
         this.controls = new THREE.OrbitControls(this.camera, this.canvas);
-        
+
         // Configure controls
         this.controls.target.set(this.boardCenter.x, 0, this.boardCenter.y);
         this.controls.enableDamping = true;
@@ -209,7 +209,34 @@ class Renderer {
         this.controls.minDistance = 20;
         this.controls.maxDistance = 80;
         this.controls.maxPolarAngle = Math.PI / 2.2;  // Don't let camera go below ground
-        
+
+    }
+
+    /**
+     * Reset camera to default isometric view (north-up).
+     * Animates camera position and OrbitControls target to the board's default angle.
+     */
+    resetCameraView() {
+        const angle = Math.PI / 4;
+        const targetX = this.boardCenter.x;
+        const targetZ = this.boardCenter.y;
+        const distance = this.cameraDistance || 40;
+
+        if (this.controls) {
+            this.controls.target.set(targetX, 0, targetZ);
+        }
+
+        this.camera.position.set(
+            targetX + distance * Math.cos(angle),
+            this.cameraHeight,
+            targetZ + distance * Math.sin(angle)
+        );
+        this.camera.lookAt(targetX, 0, targetZ);
+
+        if (this.controls) {
+            this.controls.update();
+        }
+        this.updateCompass();
     }
 
     /**
@@ -265,6 +292,113 @@ class Renderer {
 
         this.scene.add(groundMesh);
 
+    }
+
+    /**
+     * Create a text label sprite that always faces the camera.
+     * @param {string} text
+     * @param {Object} opts - {bgColor, textColor, borderColor, fontSize, padding, scale}
+     * @returns {THREE.Sprite}
+     */
+    createLabelSprite(text, opts = {}) {
+        const {
+            bgColor = 'rgba(20, 22, 30, 0.92)',
+            textColor = '#ffffff',
+            borderColor = '#4da6ff',
+            fontSize = 32,
+            scale = 0.4,
+        } = opts;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 80;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const radius = 16;
+        const padX = 8;
+        const padY = 8;
+
+        ctx.fillStyle = bgColor;
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(padX + radius, padY);
+        ctx.lineTo(canvas.width - padX - radius, padY);
+        ctx.quadraticCurveTo(canvas.width - padX, padY, canvas.width - padX, padY + radius);
+        ctx.lineTo(canvas.width - padX, canvas.height - padY - radius);
+        ctx.quadraticCurveTo(canvas.width - padX, canvas.height - padY, canvas.width - padX - radius, canvas.height - padY);
+        ctx.lineTo(padX + radius, canvas.height - padY);
+        ctx.quadraticCurveTo(padX, canvas.height - padY, padX, canvas.height - padY - radius);
+        ctx.lineTo(padX, padY + radius);
+        ctx.quadraticCurveTo(padX, padY, padX + radius, padY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `bold ${fontSize}px "Segoe UI", sans-serif`;
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            depthTest: false,
+            depthWrite: false,
+        });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(scale * (canvas.width / canvas.height), scale, 1);
+        return sprite;
+    }
+
+    /**
+     * Place 4 large cardinal markers (N/E/S/W) at the perimeter of the board.
+     * They are world-anchored, so they actually help orientation when the
+     * camera rotates — N stays where North is.
+     * @param {Board} board
+     */
+    addCardinalMarkers(board) {
+        const cx = board.width / 2 - 0.5;
+        const cy = board.height / 2 - 0.5;
+        const offset = Math.max(board.width, board.height) / 2 + 2.5;
+
+        const markers = [
+            { text: '↑ N', x: cx,           z: cy - offset, color: '#ff6b6b', height: 1.4 },
+            { text: '↓ S', x: cx,           z: cy + offset, color: '#a0a8b8', height: 1.0 },
+            { text: 'E →', x: cx + offset,  z: cy,          color: '#a0a8b8', height: 1.0 },
+            { text: '← W', x: cx - offset,  z: cy,          color: '#a0a8b8', height: 1.0 },
+        ];
+
+        for (const m of markers) {
+            const sprite = this.createLabelSprite(m.text, {
+                bgColor: 'rgba(0, 0, 0, 0.6)',
+                textColor: m.color,
+                borderColor: m.color,
+                fontSize: 56,
+                scale: m.text.includes('N') ? 0.95 : 0.75,
+            });
+            sprite.position.set(m.x, m.height, m.z);
+            this.scene.add(sprite);
+        }
+    }
+
+    /**
+     * Place a labeled marker sprite floating above a specific tile.
+     * Used for HOSPITAL/JAIL/CAFE plus per-player HOME/JOB.
+     * @param {number} x
+     * @param {number} y
+     * @param {string} text
+     * @param {Object} opts - passed to createLabelSprite
+     * @param {number} height - elevation above ground
+     */
+    addLocationLabel(x, y, text, opts = {}, height = 2.4) {
+        const sprite = this.createLabelSprite(text, opts);
+        sprite.position.set(x, height, y);
+        this.scene.add(sprite);
+        return sprite;
     }
 
     /**
@@ -336,15 +470,51 @@ class Renderer {
 
                 } else if (tile.type === 'HOSPITAL') {
                     mesh = this.createHospitalMesh(x, y, tileSize);
+                    const isMedieval = window.GAME_THEME === 'medieval';
+                    this.addLocationLabel(x, y, isMedieval ? '🌿 MONASTERY' : '🏥 HOSPITAL', {
+                        bgColor: isMedieval ? 'rgba(120, 60, 30, 0.95)' : 'rgba(255, 107, 107, 0.95)',
+                        textColor: isMedieval ? '#f7d67a' : '#ffffff',
+                        borderColor: isMedieval ? '#c9a568' : '#ffffff',
+                        fontSize: 26,
+                        scale: 0.55,
+                    }, 2.6);
 
                 } else if (tile.type === 'CAFE') {
                     mesh = this.createCafeMesh(x, y, tileSize);
+                    const isMedieval = window.GAME_THEME === 'medieval';
+                    this.addLocationLabel(x, y, isMedieval ? '🍺 TAVERN' : '☕ CAFE', {
+                        bgColor: isMedieval ? 'rgba(139, 90, 43, 0.95)' : 'rgba(255, 212, 59, 0.95)',
+                        textColor: isMedieval ? '#f7d67a' : '#3a2400',
+                        borderColor: isMedieval ? '#c9a568' : '#3a2400',
+                        fontSize: 26,
+                        scale: 0.55,
+                    }, 2.0);
 
                 } else if (tile.type === 'JAIL') {
                     mesh = this.createJailMesh(x, y, tileSize);
+                    const isMedieval = window.GAME_THEME === 'medieval';
+                    this.addLocationLabel(x, y, isMedieval ? '⛓️ DUNGEON' : '⚖️ JAIL', {
+                        bgColor: isMedieval ? 'rgba(50, 30, 15, 0.95)' : 'rgba(156, 39, 176, 0.95)',
+                        textColor: isMedieval ? '#c9a568' : '#ffffff',
+                        borderColor: isMedieval ? '#c9a568' : '#ffffff',
+                        fontSize: 26,
+                        scale: 0.55,
+                    }, 2.4);
 
                 } else if (tile.type === 'LANDMARK') {
                     mesh = this.createLandmarkMesh(x, y, tileSize, tile.landmarkType);
+                    const isMedieval = window.GAME_THEME === 'medieval';
+                    const namePart = tile.landmarkType
+                        ? String(tile.landmarkType).replace(/_/g, ' ')
+                        : 'LANDMARK';
+                    const landmarkText = isMedieval ? `📜 ${namePart}` : `📷 ${namePart}`;
+                    this.addLocationLabel(x, y, landmarkText, {
+                        bgColor: isMedieval ? 'rgba(80, 50, 20, 0.95)' : 'rgba(56, 142, 60, 0.95)',
+                        textColor: isMedieval ? '#f7d67a' : '#ffffff',
+                        borderColor: isMedieval ? '#c9a568' : '#ffffff',
+                        fontSize: 22,
+                        scale: 0.55,
+                    }, 2.6);
 
                 } else {
                     // Default: dark plane for unknown types
@@ -385,6 +555,8 @@ class Renderer {
             }
         }
 
+        // Cardinal markers around the perimeter (helps when camera is rotated)
+        this.addCardinalMarkers(board);
     }
 
     /**
@@ -1895,6 +2067,49 @@ class Renderer {
             bubbleSprite.position.set(agent.currentLocation.x, 1.7, agent.currentLocation.y);
             this.scene.add(bubbleSprite);
             this.agentSpeechBubbleMeshes.set(agent.id.toString(), bubbleSprite);
+        }
+
+        // Per-player destination labels: HOME and JOB tagged with the player's name
+        const isMedievalTheme = window.GAME_THEME === 'medieval';
+        const homeText = isMedievalTheme ? '🏰 COTTAGE' : '🏠 HOME';
+        const jobText  = isMedievalTheme ? '⚒️ KEEP'   : '💼 JOB';
+
+        for (const agent of agentsToRender) {
+            if (!agent.isPlayerControlled) continue;
+            const label = (agent.name && agent.name.length <= 12) ? agent.name : 'PLAYER';
+            const accent = agent.color || '#4da6ff';
+
+            if (agent.homeLocation) {
+                this.addLocationLabel(
+                    agent.homeLocation.x,
+                    agent.homeLocation.y,
+                    `${label}'s ${homeText}`,
+                    {
+                        bgColor: 'rgba(20, 22, 30, 0.92)',
+                        textColor: '#ffffff',
+                        borderColor: accent,
+                        fontSize: 22,
+                        scale: 0.55,
+                    },
+                    2.6
+                );
+            }
+
+            if (agent.jobLocation) {
+                this.addLocationLabel(
+                    agent.jobLocation.x,
+                    agent.jobLocation.y,
+                    `${label}'s ${jobText}`,
+                    {
+                        bgColor: 'rgba(20, 22, 30, 0.92)',
+                        textColor: '#ffffff',
+                        borderColor: accent,
+                        fontSize: 22,
+                        scale: 0.55,
+                    },
+                    2.6
+                );
+            }
         }
 
         // Create initial path visualizations for the player

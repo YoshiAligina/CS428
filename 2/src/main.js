@@ -428,6 +428,33 @@ class Game {
             }
         });
 
+        // Injury / crime random events → explain via toast
+        this.turnManager.on('agentInjured', ({ agent }) => {
+            if (!agent) return;
+            const who = agent.isPlayerControlled ? `You were` : `${agent.name || 'An agent'} was`;
+            const msg = `🏥 ${who} injured! Detour to the hospital before work.`;
+            const kind = agent.isPlayerControlled ? 'danger' : 'warning';
+            if (this.uiController && this.uiController.showToast) {
+                this.uiController.showToast(msg, kind, 4000);
+            }
+            if (this.renderer && this.renderer.showSpeechBubble) {
+                this.renderer.showSpeechBubble(agent.id, 'Ow! Need a doctor!', 2000);
+            }
+        });
+
+        this.turnManager.on('agentCriminalized', ({ agent }) => {
+            if (!agent) return;
+            const who = agent.isPlayerControlled ? `You committed` : `${agent.name || 'An agent'} committed`;
+            const msg = `⚖️ ${who} a petty crime. Serve time at the jail before work.`;
+            const kind = agent.isPlayerControlled ? 'danger' : 'warning';
+            if (this.uiController && this.uiController.showToast) {
+                this.uiController.showToast(msg, kind, 4000);
+            }
+            if (this.renderer && this.renderer.showSpeechBubble) {
+                this.renderer.showSpeechBubble(agent.id, 'Aw, busted!', 2000);
+            }
+        });
+
     }
 
     /**

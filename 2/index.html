@@ -88,6 +88,14 @@
             </div>
             <div id="gameStatus" class="status-ready">Status: <span id="statusText">Ready</span></div>
         </div>
+
+        <!-- Turn banner (whose turn) -->
+        <div id="turnBanner" class="turn-banner">
+            <span id="turnBannerLabel">Your Turn</span>
+        </div>
+
+        <!-- Toast notifications -->
+        <div id="toastContainer" class="toast-container"></div>
         
     <!-- Side panel (Player Status + Enhanced Info) -->
     <div id="sidePanel">
@@ -138,6 +146,7 @@
                 <label for="zoomSlider">Zoom:</label>
                 <input type="range" id="zoomSlider" min="20" max="80" value="40" class="zoom-slider" aria-label="Map zoom slider">
                 <span id="zoomDisplay">40</span>
+                <button id="resetViewBtn" class="reset-view-btn" type="button" title="Reset camera to default angle">Reset View</button>
             </div>
             <div id="moveDebug" class="move-debug">Move debug: waiting for input</div>
             
@@ -191,16 +200,6 @@
             </div>
         </div>
 
-        <div id="mapCompass" aria-label="Map compass">
-            <div class="compass-marker">▲</div>
-            <div id="compassDial">
-                <span class="compass-dir north">N</span>
-                <span class="compass-dir east">E</span>
-                <span class="compass-dir south">S</span>
-                <span class="compass-dir west">W</span>
-            </div>
-            <div id="compassReading">Up: N</div>
-        </div>
         
         <!-- Tile inspector (hidden by default) -->
         <div id="tileInspector" class="hidden">

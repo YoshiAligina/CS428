@@ -2606,3 +2606,142 @@ body[data-theme="medieval"] #mapLegend::-webkit-scrollbar-track {
     background: rgba(30, 18, 8, 0.6);
 }
 
+/* ========================================
+   TURN BANNER (whose turn it is)
+   ======================================== */
+.turn-banner {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 28px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(77, 166, 255, 0.95), rgba(58, 130, 220, 0.95));
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 16px;
+    letter-spacing: 0.6px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.18) inset;
+    z-index: 95;
+    pointer-events: none;
+    transition: background 0.3s ease, opacity 0.2s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.turn-banner.npc {
+    background: linear-gradient(135deg, rgba(255, 140, 66, 0.95), rgba(220, 100, 40, 0.95));
+}
+
+.turn-banner.hidden {
+    opacity: 0;
+}
+
+body[data-theme="medieval"] .turn-banner {
+    background: linear-gradient(135deg, #8b5a2b, #5f3b14);
+    border: 2px solid #c9a568;
+    font-family: 'Cinzel', 'Georgia', serif;
+    color: #f7d67a;
+    text-shadow: 0 1px 2px #000;
+}
+
+body[data-theme="medieval"] .turn-banner.npc {
+    background: linear-gradient(135deg, #6b4226, #3a230f);
+}
+
+/* ========================================
+   TOAST NOTIFICATIONS
+   ======================================== */
+.toast-container {
+    position: absolute;
+    top: 130px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    z-index: 90;
+    pointer-events: none;
+    max-width: min(560px, 80vw);
+}
+
+.toast {
+    padding: 10px 20px;
+    border-radius: 10px;
+    background: rgba(20, 22, 30, 0.95);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    border-left: 4px solid #4da6ff;
+    animation: toastSlideIn 0.3s ease-out, toastFadeOut 0.4s ease-in forwards;
+    animation-delay: 0s, var(--toast-fade-delay, 3.6s);
+    max-width: 100%;
+    text-align: center;
+}
+
+.toast.toast-warning { border-left-color: #ffd166; }
+.toast.toast-danger  { border-left-color: #ff6b6b; background: rgba(60, 20, 20, 0.96); }
+.toast.toast-info    { border-left-color: #4da6ff; }
+.toast.toast-success { border-left-color: #51cf66; }
+
+@keyframes toastSlideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toastFadeOut {
+    from { opacity: 1; }
+    to   { opacity: 0; transform: translateY(-6px); }
+}
+
+body[data-theme="medieval"] .toast {
+    background: linear-gradient(180deg, #f2e0b6, #e3c97f);
+    color: #2a1907;
+    border-left-color: #8b5a2b;
+    font-family: 'Cinzel', 'Georgia', serif;
+    box-shadow: 0 0 0 2px #3a230f inset, 0 0 0 3px #a47148 inset, 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* ========================================
+   LOW-TIME WARNING (turn counter pulse)
+   ======================================== */
+#turnNumber.low-time {
+    color: #ff6b6b !important;
+    animation: lowTimePulse 0.9s ease-in-out infinite;
+}
+
+@keyframes lowTimePulse {
+    0%, 100% { transform: scale(1); text-shadow: 0 0 6px rgba(255, 107, 107, 0.5); }
+    50%       { transform: scale(1.2); text-shadow: 0 0 14px rgba(255, 107, 107, 0.95); }
+}
+
+/* ========================================
+   RESET VIEW BUTTON (compass)
+   ======================================== */
+.reset-view-btn {
+    margin-top: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid rgba(77, 166, 255, 0.5);
+    background: rgba(77, 166, 255, 0.18);
+    color: #cfe5ff;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 0.4px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.reset-view-btn:hover {
+    background: rgba(77, 166, 255, 0.35);
+    border-color: rgba(77, 166, 255, 0.9);
+}
+
+body[data-theme="medieval"] .reset-view-btn {
+    background: rgba(139, 90, 43, 0.55);
+    border-color: #c9a568;
+    color: #f7d67a;
+    font-family: 'Cinzel', 'Georgia', serif;
+}
+

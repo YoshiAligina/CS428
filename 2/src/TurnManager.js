@@ -235,12 +235,29 @@ class TurnManager {
         }
 
         for (let agent of this.agents) {
-            if (Math.random() < 0.3) {
+            if (agent.isCommuter) continue;
+
+            // 30% chance: grab coffee at a cafe
+            if (Math.random() < 0.30) {
                 const cafeLocation = this.board.getRandomSpecialLocation('CAFE');
                 if (cafeLocation) {
                     agent.addTask('CAFE', cafeLocation);
-                } else {
-                    console.warn(`TurnManager: No CAFE locations available for Agent ${agent.id}`);
+                }
+            }
+
+            // 25% chance: take a photo at a landmark
+            if (Math.random() < 0.25) {
+                const landmarkLocation = this.board.getRandomSpecialLocation('LANDMARK');
+                if (landmarkLocation) {
+                    agent.addTask('LANDMARK', landmarkLocation);
+                }
+            }
+
+            // 12% chance: pick up medicine at a hospital (voluntary; not injury-driven)
+            if (Math.random() < 0.12) {
+                const hospitalLocation = this.board.getRandomSpecialLocation('HOSPITAL');
+                if (hospitalLocation) {
+                    agent.addTask('HOSPITAL', hospitalLocation, { subtype: 'MEDICINE' });
                 }
             }
         }
@@ -279,50 +296,68 @@ class TurnManager {
             return;
         }
 
-        // Injury event (2% chance)
-        if (Math.random() < 0.02) {
-            const injuryCandidates = this.agents.filter(agent =>
-                agent.status !== Agent.STATUS.FAILED && agent.status !== Agent.STATUS.ARRIVED && !agent.isInjured && !agent.isCommuter
-            );
+        // Track which agent (if any) was hit this turn so we never combo
+        // injury + crime on the same person in a single turn.
+        let hitThisTurn = null;
 
-            if (injuryCandidates.length > 0) {
+        const eligible = (agent) =>
+            agent.status !== Agent.STATUS.FAILED &&
+            agent.status !== Agent.STATUS.ARRIVED &&
+            !agent.isCommuter &&
+            !agent.isInjured &&
+            !agent.isCriminal &&
+            (agent.injuryCooldown || 0) <= 0 &&
+            (agent.crimeCooldown || 0) <= 0;
+
+        // Injury event (was 2%, now 0.8%)
+        if (Math.random() < 0.008) {
+            const candidates = this.agents.filter(a => eligible(a) && a !== hitThisTurn);
+            if (candidates.length > 0) {
                 const hospitalLocation = this.board.getRandomSpecialLocation('HOSPITAL');
                 if (hospitalLocation) {
-                    const index = Math.floor(Math.random() * injuryCandidates.length);
-                    const agent = injuryCandidates[index];
-
+                    const agent = candidates[Math.floor(Math.random() * candidates.length)];
                     const injured = agent.injure(hospitalLocation);
                     if (injured) {
                         console.log(`Agent ${agent.id} was injured! Must visit hospital.`);
                         if (!agent.isPlayerControlled) {
                             agent.calculatePath(this.board);
                         }
+                        hitThisTurn = agent;
+                        this.emit('agentInjured', { agent, hospitalLocation });
                     }
                 }
             }
         }
 
-        // Crime event (1% chance)
-        if (Math.random() < 0.01) {
-            const crimeCandidates = this.agents.filter(agent =>
-                agent.status !== Agent.STATUS.FAILED && agent.status !== Agent.STATUS.ARRIVED && !agent.isCriminal && !agent.isCommuter
-            );
-
-            if (crimeCandidates.length > 0) {
+        // Crime event (was 1%, now 0.4%)
+        if (Math.random() < 0.004) {
+            const candidates = this.agents.filter(a => eligible(a) && a !== hitThisTurn);
+            if (candidates.length > 0) {
                 const jailLocation = this.board.getRandomSpecialLocation('JAIL');
                 if (jailLocation) {
-                    const index = Math.floor(Math.random() * crimeCandidates.length);
-                    const agent = crimeCandidates[index];
-
+                    const agent = candidates[Math.floor(Math.random() * candidates.length)];
                     const committed = agent.commitCrime(jailLocation);
                     if (committed) {
                         console.log(`Agent ${agent.id} committed a crime! Must serve jail time.`);
                         if (!agent.isPlayerControlled) {
                             agent.calculatePath(this.board);
                         }
+                        hitThisTurn = agent;
+                        this.emit('agentCriminalized', { agent, jailLocation });
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Decrement injury/crime cooldowns each turn so agents become re-eligible
+     * for random hospital/jail events after a grace period.
+     */
+    updateEventCooldowns() {
+        for (const agent of this.agents) {
+            if ((agent.injuryCooldown || 0) > 0) agent.injuryCooldown--;
+            if ((agent.crimeCooldown  || 0) > 0) agent.crimeCooldown--;
         }
     }
 
@@ -380,6 +415,7 @@ class TurnManager {
 
         this.playerBlockUsed = false;
         this.updatePlayerBlocks();
+        this.updateEventCooldowns();
         this.maybeCreateAccident();
         this.triggerRandomEvents();
 

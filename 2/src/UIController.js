@@ -83,6 +83,13 @@ class UIController {
         this.uiElements.zoomDisplay = document.getElementById('zoomDisplay');
         this.uiElements.legendMinimizeBtn = document.getElementById('legendMinimizeBtn');
         this.uiElements.legendContent = document.getElementById('legendContent');
+        this.uiElements.turnBanner = document.getElementById('turnBanner');
+        this.uiElements.turnBannerLabel = document.getElementById('turnBannerLabel');
+        this.uiElements.toastContainer = document.getElementById('toastContainer');
+        this.uiElements.resetViewBtn = document.getElementById('resetViewBtn');
+
+        // Track time-warning thresholds we've already announced this game
+        this._timeWarningsShown = new Set();
 
         // Add event listeners
         this.uiElements.endTurnBtn.addEventListener('click', () => this.onEndTurnClick());
@@ -104,6 +111,13 @@ class UIController {
         }
         if (this.uiElements.legendMinimizeBtn) {
             this.uiElements.legendMinimizeBtn.addEventListener('click', () => this.toggleLegendMinimize());
+        }
+        if (this.uiElements.resetViewBtn) {
+            this.uiElements.resetViewBtn.addEventListener('click', () => {
+                if (window.gameRenderer && typeof window.gameRenderer.resetCameraView === 'function') {
+                    window.gameRenderer.resetCameraView();
+                }
+            });
         }
 
         if (this.uiElements.zoomSlider && window.gameRenderer && typeof window.gameRenderer.getZoomDistance === 'function') {
@@ -222,6 +236,106 @@ class UIController {
 
         // Update special agent status
         this.updateSpecialAgentStatus();
+
+        // Update whose-turn banner
+        this.updateTurnBanner();
+
+        // Low-time warning: flash counter + toast at 10/5/1 turns remaining
+        this.applyLowTimeWarning();
+    }
+
+    /**
+     * Update the floating "whose turn" banner above the canvas.
+     */
+    updateTurnBanner() {
+        if (!this.uiElements.turnBanner || !this.uiElements.turnBannerLabel) return;
+
+        if (this.turnManager && this.turnManager.gameFinished) {
+            this.uiElements.turnBanner.classList.add('hidden');
+            return;
+        }
+
+        const players = this.agents.filter(a => a.isPlayerControlled);
+        if (players.length === 0) {
+            this.uiElements.turnBanner.classList.add('hidden');
+            return;
+        }
+
+        const activePlayer = (window.game && typeof window.game.getActivePlayer === 'function')
+            ? window.game.getActivePlayer()
+            : null;
+
+        if (activePlayer && activePlayer.status === Agent.STATUS.ACTIVE) {
+            const name = activePlayer.name || 'Player';
+            this.uiElements.turnBannerLabel.textContent = players.length > 1
+                ? `${name}'s Turn — Move with WASD/Arrows`
+                : `Your Turn — Move with WASD/Arrows`;
+            this.uiElements.turnBanner.classList.remove('npc');
+        } else {
+            this.uiElements.turnBannerLabel.textContent = 'City Moving…';
+            this.uiElements.turnBanner.classList.add('npc');
+        }
+
+        this.uiElements.turnBanner.classList.remove('hidden');
+    }
+
+    /**
+     * Apply or remove the low-time pulse animation and emit warning toasts at thresholds.
+     */
+    applyLowTimeWarning() {
+        if (!this.uiElements.turnNumber || !this.turnManager) return;
+
+        const player = (window.game && typeof window.game.getActivePlayer === 'function')
+            ? window.game.getActivePlayer()
+            : null;
+
+        const turnsRemaining = player ? (player.turnsRemaining || 0) : 0;
+
+        if (turnsRemaining > 0 && turnsRemaining <= 5) {
+            this.uiElements.turnNumber.classList.add('low-time');
+        } else {
+            this.uiElements.turnNumber.classList.remove('low-time');
+        }
+
+        if (!this._timeWarningsShown) this._timeWarningsShown = new Set();
+
+        const thresholds = [
+            { value: 10, label: '10 turns left — pace yourself!', kind: 'warning' },
+            { value: 5,  label: '⏰ 5 turns left — get moving!',    kind: 'danger' },
+            { value: 1,  label: '🚨 LAST TURN — don\'t miss work!', kind: 'danger' },
+        ];
+
+        for (const t of thresholds) {
+            if (turnsRemaining === t.value && !this._timeWarningsShown.has(t.value)) {
+                this.showToast(t.label, t.kind, 3500);
+                this._timeWarningsShown.add(t.value);
+            }
+        }
+    }
+
+    /**
+     * Show a transient toast notification.
+     * @param {string} message
+     * @param {string} kind - 'info' | 'warning' | 'danger' | 'success'
+     * @param {number} durationMs
+     */
+    showToast(message, kind = 'info', durationMs = 3500) {
+        if (!this.uiElements.toastContainer || !message) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${kind}`;
+        toast.textContent = message;
+
+        // CSS reads --toast-fade-delay; total visible time = duration - 400ms fade
+        const fadeDelay = Math.max(0, durationMs - 400);
+        toast.style.setProperty('--toast-fade-delay', `${fadeDelay}ms`);
+
+        this.uiElements.toastContainer.appendChild(toast);
+        setTimeout(() => {
+            if (toast.parentNode === this.uiElements.toastContainer) {
+                this.uiElements.toastContainer.removeChild(toast);
+            }
+        }, durationMs + 50);
     }
 
     /**
@@ -457,7 +571,7 @@ class UIController {
         
         for (const task of agent.tasksQueue) {
             const checkbox = task.completed ? '☑' : '☐';
-            const taskName = this.formatTaskName(task.type);
+            const taskName = this.formatTaskName(task);
             const classes = task.completed ? 'completed' : 'pending';
             checklist += `<li class="task-item ${classes}">${checkbox} ${taskName}</li>`;
         }
@@ -466,23 +580,13 @@ class UIController {
         const reachedOffice = agent.arrivedAtJob === true || agent.status === 'ARRIVED';
         const jobCheckbox = reachedOffice ? '☑' : '☐';
         const jobClasses = reachedOffice ? 'completed' : 'pending';
-        checklist += `<li class="task-item ${jobClasses}">${jobCheckbox} Reach office</li>`;
+        const isMedievalThemeForJob = (typeof document !== 'undefined' && document.body && document.body.dataset.theme === 'medieval')
+            || (typeof window !== 'undefined' && window.GAME_THEME === 'medieval');
+        const jobLabel = isMedievalThemeForJob ? 'Report to the keep' : 'Reach office';
+        checklist += `<li class="task-item ${jobClasses}">${jobCheckbox} ${jobLabel}</li>`;
 
         checklist += '</ul></div>';
         return checklist;
-    }
-
-    /**
-     * Format task type for display
-     * @param {string} taskType - Task type (CAFE, HOSPITAL, LANDMARK, etc.)
-     * @returns {string} Formatted task name
-     */
-    formatTaskName(taskType) {
-        if (taskType === 'CAFE') return 'Visit Café';
-        if (taskType === 'HOSPITAL') return 'Visit Hospital';
-        if (taskType === 'LANDMARK') return 'Take Photo at Landmark';
-        if (taskType === 'JAIL') return 'Serve Jail Time';
-        return `Visit ${taskType}`;
     }
 
     /**
@@ -702,7 +806,7 @@ class UIController {
             item.className = `checklist-item ${task.completed ? 'completed' : 'active'}`;
 
             const icon = task.completed ? '✅' : '⏳';
-            const taskName = this.formatTaskName(task.type);
+            const taskName = this.formatTaskName(task);
 
             item.innerHTML = `<span class="checklist-icon">${icon}</span> <span>${taskName}</span>`;
             list.appendChild(item);
@@ -829,23 +933,46 @@ class UIController {
     }
 
     /**
-     * Format task name for display
-     * @param {string} taskType - Task type constant
+     * Format task name for display. Accepts either a raw task-type string
+     * or a full task object so we can branch on subtypes (e.g. medicine vs
+     * injury-driven hospital visit).
+     * @param {string|Object} taskOrType
      * @returns {string} Formatted task name with icon
      */
-    formatTaskName(taskType) {
-        const taskNames = {
-            'CAFE': '☕ Cafe',
-            'HOSPITAL': '🏥 Hospital',
-            'JAIL': '⚖️ Jail',
+    formatTaskName(taskOrType) {
+        const task = (typeof taskOrType === 'string') ? null : taskOrType;
+        const taskType = task ? task.type : taskOrType;
+
+        const isMedieval = (typeof document !== 'undefined' && document.body && document.body.dataset.theme === 'medieval')
+            || (typeof window !== 'undefined' && window.GAME_THEME === 'medieval');
+
+        if (taskType === 'HOSPITAL') {
+            if (task && task.subtype === 'MEDICINE') {
+                return isMedieval ? '🌿 Fetch herbs from monastery' : '💊 Pick up medicine';
+            }
+            if (task && task.isHospitalTask) {
+                return isMedieval ? '🌿 Mend wounds at monastery' : '🏥 Visit hospital (injury)';
+            }
+            return isMedieval ? '🌿 Visit monastery' : '🏥 Visit hospital';
+        }
+        if (taskType === 'LANDMARK') {
+            return isMedieval ? '📜 Pay respects at the shrine' : '📷 Take photo at landmark';
+        }
+        if (taskType === 'CAFE') {
+            return isMedieval ? '🍺 Drink ale at the tavern' : '☕ Grab coffee at cafe';
+        }
+        if (taskType === 'JAIL') {
+            return isMedieval ? '⛓️ Serve sentence in the dungeon' : '⚖️ Serve jail time';
+        }
+
+        const fallbacks = {
             'GAS_STATION': '⛽ Gas Station',
             'POSTAL_OFFICE': '📮 Postal Office',
             'DELIVER_PACKAGE': '📦 Deliver Package',
             'PICK_UP_DRY_CLEANING': '🧥 Pick Up Dry Cleaning',
             'MEET_FRIEND': '👥 Meet Friend',
         };
-
-        return taskNames[taskType] || taskType;
+        return fallbacks[taskType] || taskType;
     }
 
     /**
@@ -856,7 +983,15 @@ class UIController {
         const playerSucceeded = player && player.status === 'ARRIVED';
         const playerFailed = player && player.status === 'FAILED';
 
-        const resultTitle = playerSucceeded ? 'You Won!' : 'Game Over';
+        const isMedieval = (typeof document !== 'undefined' && document.body && document.body.dataset.theme === 'medieval')
+            || (typeof window !== 'undefined' && window.GAME_THEME === 'medieval');
+
+        let resultTitle;
+        if (playerSucceeded) {
+            resultTitle = 'You Won!';
+        } else {
+            resultTitle = isMedieval ? "You've Been Executed" : "You're Fired!";
+        }
 
         // Calculate average congestion
         let congestionSum = 0;

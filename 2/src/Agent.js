@@ -89,6 +89,7 @@ class Agent {
         this.mustVisitHospital = false;
         this.hospitalTaskLocation = null;
         this.healingTurnsRemaining = 0;
+        this.injuryCooldown = 0;  // turns of immunity to injury after recovery
 
         // Crime system
         this.isCriminal = false;
@@ -96,6 +97,7 @@ class Agent {
         this.jailSentence = 0;
         this.jailTaskLocation = null;
         this.isInJail = false;
+        this.crimeCooldown = 0;  // turns of immunity to crime after release
 
         // Photo delay system
         this.visitedLandmarks = new Set();  // Set of landmark coordinates as strings: "x,y"
@@ -204,7 +206,7 @@ class Agent {
      * @param {Object} taskLocation - Task location {x, y}
      * @returns {boolean} True if task was added successfully
      */
-    addTask(taskType, taskLocation) {
+    addTask(taskType, taskLocation, extras = {}) {
         // Validate task type
         if (!Object.values(Agent.TASK_TYPE).includes(taskType)) {
             console.warn(`Invalid task type: ${taskType}`);
@@ -222,6 +224,7 @@ class Agent {
             location: { ...taskLocation },
             completed: false,
             addedAtTurn: this.turnsElapsed,
+            ...extras,
         };
 
         this.tasksQueue.push(task);
@@ -537,6 +540,7 @@ class Agent {
             this.mustVisitJail = false;
             this.isInJail = false;
             this.jailTaskLocation = null;
+            this.crimeCooldown = 6;  // grace period before another crime can hit
             this.tasksQueue = this.tasksQueue.filter(task => task.type !== Agent.TASK_TYPE.JAIL);
         }
 
@@ -550,8 +554,12 @@ class Agent {
         this.isInjured = false;
         this.mustVisitHospital = false;
         this.hospitalTaskLocation = null;
+        this.injuryCooldown = 6;  // grace period before another injury can hit
 
-        this.tasksQueue = this.tasksQueue.filter(task => task.type !== Agent.TASK_TYPE.HOSPITAL);
+        // Only clear injury-driven hospital tasks; preserve voluntary ones (e.g. MEDICINE)
+        this.tasksQueue = this.tasksQueue.filter(task =>
+            !(task.type === Agent.TASK_TYPE.HOSPITAL && task.isHospitalTask === true)
+        );
     }
 
     /**
@@ -772,11 +780,13 @@ class Agent {
         this.mustVisitHospital = false;
         this.hospitalTaskLocation = null;
         this.healingTurnsRemaining = 0;
+        this.injuryCooldown = 0;
         this.isCriminal = false;
         this.mustVisitJail = false;
         this.jailSentence = 0;
         this.jailTaskLocation = null;
         this.isInJail = false;
+        this.crimeCooldown = 0;
         this.visitedLandmarks = new Set();
         this.takingPhoto = false;
         this.photoTurnsRemaining = 0;
