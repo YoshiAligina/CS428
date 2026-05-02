@@ -2745,3 +2745,162 @@ body[data-theme="medieval"] .reset-view-btn {
     font-family: 'Cinzel', 'Georgia', serif;
 }
 
+/* ========================================
+   FUTURISTIC / CYBER THEME
+   ======================================== */
+body[data-theme="futuristic"] {
+    color: #d6f7ff;
+    font-family: 'Orbitron', 'Rajdhani', 'Segoe UI', sans-serif;
+}
+
+body[data-theme="futuristic"] #topBar {
+    background: linear-gradient(180deg, rgba(8, 12, 24, 0.95), rgba(14, 22, 38, 0.95));
+    border-bottom: 2px solid #00e5ff;
+    box-shadow: 0 0 18px rgba(0, 229, 255, 0.35);
+}
+
+body[data-theme="futuristic"] #turnDisplay {
+    color: #00e5ff;
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
+    font-family: 'Orbitron', 'Courier New', monospace;
+    letter-spacing: 1.5px;
+}
+
+body[data-theme="futuristic"] #turnNumber {
+    color: #ff39c5;
+    text-shadow: 0 0 10px rgba(255, 57, 197, 0.85);
+}
+
+body[data-theme="futuristic"] #timeDisplay {
+    color: #b9f1ff;
+    text-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+}
+
+body[data-theme="futuristic"] #currentTime {
+    color: #ffe14a;
+    text-shadow: 0 0 6px rgba(255, 225, 74, 0.6);
+}
+
+body[data-theme="futuristic"] #sidePanel,
+body[data-theme="futuristic"] #mapLegend,
+body[data-theme="futuristic"] #actionPanel,
+body[data-theme="futuristic"] #tileInspector {
+    background: linear-gradient(180deg, rgba(10, 16, 30, 0.94), rgba(6, 10, 22, 0.96));
+    border: 1px solid rgba(0, 229, 255, 0.45);
+    box-shadow: 0 0 14px rgba(0, 229, 255, 0.25), 0 0 0 1px rgba(255, 57, 197, 0.18) inset;
+    color: #d6f7ff;
+}
+
+body[data-theme="futuristic"] #sidePanel h3,
+body[data-theme="futuristic"] #sidePanel h4,
+body[data-theme="futuristic"] .legend-header {
+    color: #00e5ff;
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+body[data-theme="futuristic"] .agent-card {
+    background: linear-gradient(180deg, rgba(20, 30, 50, 0.85), rgba(10, 18, 32, 0.85));
+    border: 1px solid rgba(0, 229, 255, 0.4);
+    box-shadow: 0 0 6px rgba(0, 229, 255, 0.25);
+    color: #d6f7ff;
+}
+
+body[data-theme="futuristic"] .agent-card.is-active-turn {
+    border-color: #ff39c5;
+    box-shadow: 0 0 12px rgba(255, 57, 197, 0.55);
+}
+
+body[data-theme="futuristic"] .active-player-banner {
+    background: linear-gradient(135deg, #00e5ff, #6f5bff);
+    color: #02101e;
+    text-shadow: none;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 1.5px;
+}
+
+body[data-theme="futuristic"] .turn-banner {
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.92), rgba(111, 91, 255, 0.92));
+    color: #02101e;
+    text-shadow: none;
+    font-family: 'Orbitron', 'Segoe UI', sans-serif;
+    letter-spacing: 1.4px;
+    box-shadow: 0 0 18px rgba(0, 229, 255, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+}
+
+body[data-theme="futuristic"] .turn-banner.npc {
+    background: linear-gradient(135deg, rgba(255, 57, 197, 0.92), rgba(180, 50, 220, 0.92));
+    color: #fff8ff;
+}
+
+body[data-theme="futuristic"] .toast {
+    background: rgba(8, 14, 26, 0.96);
+    color: #d6f7ff;
+    border-left: 4px solid #00e5ff;
+    box-shadow: 0 0 14px rgba(0, 229, 255, 0.4);
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.8px;
+}
+
+body[data-theme="futuristic"] .toast.toast-warning { border-left-color: #ffe14a; }
+body[data-theme="futuristic"] .toast.toast-danger  { border-left-color: #ff3b6b; background: rgba(40, 8, 22, 0.96); }
+body[data-theme="futuristic"] .toast.toast-success { border-left-color: #5bff9c; }
+
+body[data-theme="futuristic"] .primary-btn,
+body[data-theme="futuristic"] .control-btn,
+body[data-theme="futuristic"] .move-btn {
+    background: linear-gradient(180deg, #002233, #001824);
+    border: 1px solid #00e5ff;
+    color: #00e5ff;
+    text-shadow: 0 0 6px rgba(0, 229, 255, 0.7);
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 1px;
+}
+
+body[data-theme="futuristic"] .primary-btn:hover,
+body[data-theme="futuristic"] .control-btn:hover,
+body[data-theme="futuristic"] .move-btn:hover {
+    background: linear-gradient(180deg, #003a55, #002a3e);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.6);
+}
+
+body[data-theme="futuristic"] .reset-view-btn {
+    background: rgba(0, 229, 255, 0.12);
+    border-color: #00e5ff;
+    color: #00e5ff;
+    text-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+    font-family: 'Orbitron', sans-serif;
+}
+
+body[data-theme="futuristic"] #gameStatus,
+body[data-theme="futuristic"] #statusText {
+    color: #5bff9c;
+    text-shadow: 0 0 6px rgba(91, 255, 156, 0.6);
+}
+
+body[data-theme="futuristic"] .start-menu-card {
+    background: linear-gradient(145deg, rgba(8, 18, 32, 0.97), rgba(4, 10, 22, 0.97));
+    border: 1px solid #00e5ff;
+    box-shadow: 0 0 28px rgba(0, 229, 255, 0.4), 0 0 0 1px rgba(255, 57, 197, 0.2) inset;
+}
+
+body[data-theme="futuristic"] .start-menu-title {
+    color: #00e5ff;
+    text-shadow: 0 0 14px rgba(0, 229, 255, 0.7);
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 2px;
+}
+
+body[data-theme="futuristic"] #gameOverTitle {
+    color: #ff39c5;
+    text-shadow: 0 0 16px rgba(255, 57, 197, 0.8);
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 2px;
+}
+
+body[data-theme="futuristic"] #gameOverTitle.win {
+    color: #5bff9c;
+    text-shadow: 0 0 16px rgba(91, 255, 156, 0.85);
+}
+

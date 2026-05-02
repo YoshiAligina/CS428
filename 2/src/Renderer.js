@@ -470,50 +470,51 @@ class Renderer {
 
                 } else if (tile.type === 'HOSPITAL') {
                     mesh = this.createHospitalMesh(x, y, tileSize);
-                    const isMedieval = window.GAME_THEME === 'medieval';
-                    this.addLocationLabel(x, y, isMedieval ? '🌿 MONASTERY' : '🏥 HOSPITAL', {
-                        bgColor: isMedieval ? 'rgba(120, 60, 30, 0.95)' : 'rgba(255, 107, 107, 0.95)',
-                        textColor: isMedieval ? '#f7d67a' : '#ffffff',
-                        borderColor: isMedieval ? '#c9a568' : '#ffffff',
-                        fontSize: 26,
-                        scale: 0.55,
-                    }, 2.6);
+                    const theme = window.GAME_THEME;
+                    let text = '🏥 HOSPITAL', bg = 'rgba(255, 107, 107, 0.95)', tc = '#ffffff', bc = '#ffffff';
+                    if (theme === 'medieval') {
+                        text = '🌿 MONASTERY'; bg = 'rgba(120, 60, 30, 0.95)'; tc = '#f7d67a'; bc = '#c9a568';
+                    } else if (theme === 'futuristic') {
+                        text = '🩺 MED-BAY'; bg = 'rgba(8, 30, 50, 0.95)'; tc = '#00e5ff'; bc = '#00e5ff';
+                    }
+                    this.addLocationLabel(x, y, text, { bgColor: bg, textColor: tc, borderColor: bc, fontSize: 26, scale: 0.55 }, 2.6);
 
                 } else if (tile.type === 'CAFE') {
                     mesh = this.createCafeMesh(x, y, tileSize);
-                    const isMedieval = window.GAME_THEME === 'medieval';
-                    this.addLocationLabel(x, y, isMedieval ? '🍺 TAVERN' : '☕ CAFE', {
-                        bgColor: isMedieval ? 'rgba(139, 90, 43, 0.95)' : 'rgba(255, 212, 59, 0.95)',
-                        textColor: isMedieval ? '#f7d67a' : '#3a2400',
-                        borderColor: isMedieval ? '#c9a568' : '#3a2400',
-                        fontSize: 26,
-                        scale: 0.55,
-                    }, 2.0);
+                    const theme = window.GAME_THEME;
+                    let text = '☕ CAFE', bg = 'rgba(255, 212, 59, 0.95)', tc = '#3a2400', bc = '#3a2400';
+                    if (theme === 'medieval') {
+                        text = '🍺 TAVERN'; bg = 'rgba(139, 90, 43, 0.95)'; tc = '#f7d67a'; bc = '#c9a568';
+                    } else if (theme === 'futuristic') {
+                        text = '⚡ NEON BAR'; bg = 'rgba(8, 14, 30, 0.95)'; tc = '#ff39c5'; bc = '#ff39c5';
+                    }
+                    this.addLocationLabel(x, y, text, { bgColor: bg, textColor: tc, borderColor: bc, fontSize: 26, scale: 0.55 }, 2.0);
 
                 } else if (tile.type === 'JAIL') {
                     mesh = this.createJailMesh(x, y, tileSize);
-                    const isMedieval = window.GAME_THEME === 'medieval';
-                    this.addLocationLabel(x, y, isMedieval ? '⛓️ DUNGEON' : '⚖️ JAIL', {
-                        bgColor: isMedieval ? 'rgba(50, 30, 15, 0.95)' : 'rgba(156, 39, 176, 0.95)',
-                        textColor: isMedieval ? '#c9a568' : '#ffffff',
-                        borderColor: isMedieval ? '#c9a568' : '#ffffff',
-                        fontSize: 26,
-                        scale: 0.55,
-                    }, 2.4);
+                    const theme = window.GAME_THEME;
+                    let text = '⚖️ JAIL', bg = 'rgba(156, 39, 176, 0.95)', tc = '#ffffff', bc = '#ffffff';
+                    if (theme === 'medieval') {
+                        text = '⛓️ DUNGEON'; bg = 'rgba(50, 30, 15, 0.95)'; tc = '#c9a568'; bc = '#c9a568';
+                    } else if (theme === 'futuristic') {
+                        text = '🔒 CYBER PRISON'; bg = 'rgba(20, 8, 30, 0.95)'; tc = '#ff39c5'; bc = '#ff39c5';
+                    }
+                    this.addLocationLabel(x, y, text, { bgColor: bg, textColor: tc, borderColor: bc, fontSize: 24, scale: 0.55 }, 2.4);
 
                 } else if (tile.type === 'LANDMARK') {
                     mesh = this.createLandmarkMesh(x, y, tileSize, tile.landmarkType);
-                    const isMedieval = window.GAME_THEME === 'medieval';
+                    const theme = window.GAME_THEME;
                     const namePart = tile.landmarkType
                         ? String(tile.landmarkType).replace(/_/g, ' ')
                         : 'LANDMARK';
-                    const landmarkText = isMedieval ? `📜 ${namePart}` : `📷 ${namePart}`;
-                    this.addLocationLabel(x, y, landmarkText, {
-                        bgColor: isMedieval ? 'rgba(80, 50, 20, 0.95)' : 'rgba(56, 142, 60, 0.95)',
-                        textColor: isMedieval ? '#f7d67a' : '#ffffff',
-                        borderColor: isMedieval ? '#c9a568' : '#ffffff',
-                        fontSize: 22,
-                        scale: 0.55,
+                    let prefix = '📷', bg = 'rgba(56, 142, 60, 0.95)', tc = '#ffffff', bc = '#ffffff';
+                    if (theme === 'medieval') {
+                        prefix = '📜'; bg = 'rgba(80, 50, 20, 0.95)'; tc = '#f7d67a'; bc = '#c9a568';
+                    } else if (theme === 'futuristic') {
+                        prefix = '🛰️'; bg = 'rgba(8, 22, 40, 0.95)'; tc = '#00e5ff'; bc = '#00e5ff';
+                    }
+                    this.addLocationLabel(x, y, `${prefix} ${namePart}`, {
+                        bgColor: bg, textColor: tc, borderColor: bc, fontSize: 22, scale: 0.55,
                     }, 2.6);
 
                 } else {
@@ -591,6 +592,9 @@ class Renderer {
         }
         if (window.GAME_THEME === 'medieval') {
             return this.createMedievalBuildingMesh(x, y, tileSize, type, heightNoise, variation);
+        }
+        if (window.GAME_THEME === 'futuristic') {
+            return this.createFuturisticBuildingMesh(x, y, tileSize, type, heightNoise, variation);
         }
 
         const group = new THREE.Group();
@@ -1392,6 +1396,9 @@ class Renderer {
         if (window.GAME_THEME === 'medieval') {
             return this.createMedievalMonasteryMesh(x, y, tileSize);
         }
+        if (window.GAME_THEME === 'futuristic') {
+            return this.createFuturisticMedBayMesh(x, y, tileSize);
+        }
         const group = new THREE.Group();
 
         const baseHeight = tileSize * 0.9;
@@ -1448,6 +1455,9 @@ class Renderer {
         if (window.GAME_THEME === 'medieval') {
             return this.createMedievalDungeonMesh(x, y, tileSize);
         }
+        if (window.GAME_THEME === 'futuristic') {
+            return this.createFuturisticCyberPrisonMesh(x, y, tileSize);
+        }
         const group = new THREE.Group();
 
         const baseHeight = tileSize * 1.0;
@@ -1499,6 +1509,9 @@ class Renderer {
     createCafeMesh(x, y, tileSize) {
         if (window.GAME_THEME === 'medieval') {
             return this.createMedievalTavernMesh(x, y, tileSize);
+        }
+        if (window.GAME_THEME === 'futuristic') {
+            return this.createFuturisticNeonBarMesh(x, y, tileSize);
         }
         const group = new THREE.Group();
 
@@ -1779,6 +1792,369 @@ class Renderer {
         );
         sign.position.set(tileSize * 0.38, baseH * 0.6, tileSize * 0.46);
         group.add(sign);
+
+        group.position.set(x, 0, y);
+        return group;
+    }
+
+    /**
+     * Futuristic building variant: hab-pod / megacorp tower / generic cyber block.
+     * Glowing neon edges and emissive panels.
+     */
+    createFuturisticBuildingMesh(x, y, tileSize, type, heightNoise, variation) {
+        const group = new THREE.Group();
+        const accent = (variation > 0.5) ? 0x00e5ff : 0xff39c5;
+        const dark   = 0x141a28;
+
+        if (type === 'house') {
+            // Hab-pod: hex prism with glowing rim
+            const podH = 0.9 + heightNoise * 0.4;
+            const pod = new THREE.Mesh(
+                new THREE.CylinderGeometry(tileSize * 0.32, tileSize * 0.32, podH, 6),
+                new THREE.MeshStandardMaterial({ color: dark, metalness: 0.6, roughness: 0.35 })
+            );
+            pod.position.set(0, podH / 2, 0);
+            pod.castShadow = true;
+            pod.receiveShadow = true;
+            group.add(pod);
+
+            // Glowing rim band
+            const band = new THREE.Mesh(
+                new THREE.CylinderGeometry(tileSize * 0.34, tileSize * 0.34, 0.06, 6),
+                new THREE.MeshStandardMaterial({
+                    color: accent,
+                    emissive: accent,
+                    emissiveIntensity: 1.0,
+                    metalness: 0.3,
+                    roughness: 0.4,
+                })
+            );
+            band.position.set(0, podH * 0.6, 0);
+            group.add(band);
+
+            // Glowing antenna
+            const antenna = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.02, 0.02, 0.4, 6),
+                new THREE.MeshStandardMaterial({
+                    color: accent,
+                    emissive: accent,
+                    emissiveIntensity: 0.9,
+                })
+            );
+            antenna.position.set(0, podH + 0.2, 0);
+            group.add(antenna);
+        } else if (type === 'office') {
+            // Megacorp tower: tall, sleek, vertical neon stripes
+            const h = 2.4 + heightNoise * 2.0;
+            const w = tileSize * 0.55;
+            const d = tileSize * 0.55;
+            const tower = new THREE.Mesh(
+                new THREE.BoxGeometry(w, h, d),
+                new THREE.MeshStandardMaterial({
+                    color: 0x0c1424,
+                    metalness: 0.9,
+                    roughness: 0.15,
+                    emissive: 0x081420,
+                    emissiveIntensity: 0.4,
+                })
+            );
+            tower.position.set(0, h / 2, 0);
+            tower.castShadow = true;
+            tower.receiveShadow = true;
+            group.add(tower);
+
+            // Vertical neon stripes on each side
+            const stripeMat = new THREE.MeshStandardMaterial({
+                color: accent,
+                emissive: accent,
+                emissiveIntensity: 1.1,
+            });
+            const stripeWidth = 0.04;
+            const stripeFaces = [
+                { axis: 'z', sign:  1 },
+                { axis: 'z', sign: -1 },
+                { axis: 'x', sign:  1 },
+                { axis: 'x', sign: -1 },
+            ];
+            for (const face of stripeFaces) {
+                const stripe = new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        face.axis === 'z' ? stripeWidth : 0.02,
+                        h * 0.8,
+                        face.axis === 'x' ? stripeWidth : 0.02
+                    ),
+                    stripeMat
+                );
+                if (face.axis === 'z') {
+                    stripe.position.set(0, h / 2, face.sign * (d / 2 + 0.01));
+                } else {
+                    stripe.position.set(face.sign * (w / 2 + 0.01), h / 2, 0);
+                }
+                group.add(stripe);
+            }
+
+            // Crowning beacon
+            const beacon = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8),
+                new THREE.MeshStandardMaterial({
+                    color: 0xff39c5,
+                    emissive: 0xff39c5,
+                    emissiveIntensity: 1.4,
+                })
+            );
+            beacon.position.set(0, h + 0.25, 0);
+            group.add(beacon);
+        } else {
+            // Generic cyber block: dark cube with glowing edge accent
+            const h = 1.0 + heightNoise * 0.9;
+            const w = tileSize * 0.85;
+            const d = tileSize * 0.85;
+            const block = new THREE.Mesh(
+                new THREE.BoxGeometry(w, h, d),
+                new THREE.MeshStandardMaterial({
+                    color: dark,
+                    metalness: 0.7,
+                    roughness: 0.3,
+                    emissive: 0x081424,
+                    emissiveIntensity: 0.3,
+                })
+            );
+            block.position.set(0, h / 2, 0);
+            block.castShadow = true;
+            block.receiveShadow = true;
+            group.add(block);
+
+            // Top glow strip
+            const topStrip = new THREE.Mesh(
+                new THREE.BoxGeometry(w * 0.9, 0.04, d * 0.9),
+                new THREE.MeshStandardMaterial({
+                    color: accent,
+                    emissive: accent,
+                    emissiveIntensity: 1.0,
+                })
+            );
+            topStrip.position.set(0, h + 0.02, 0);
+            group.add(topStrip);
+        }
+
+        group.position.set(x, 0, y);
+        return group;
+    }
+
+    /**
+     * Futuristic variant of hospital: white pod with glowing red cross.
+     */
+    createFuturisticMedBayMesh(x, y, tileSize) {
+        const group = new THREE.Group();
+        const shell = 0xeaf6ff;
+        const cyan  = 0x00e5ff;
+        const red   = 0xff3b6b;
+
+        const baseH = tileSize * 0.85;
+        const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(tileSize * 0.42, tileSize * 0.42, baseH, 8),
+            new THREE.MeshStandardMaterial({
+                color: shell,
+                metalness: 0.55,
+                roughness: 0.25,
+                emissive: 0x0c2030,
+                emissiveIntensity: 0.18,
+            })
+        );
+        base.position.set(0, baseH / 2, 0);
+        base.castShadow = true;
+        base.receiveShadow = true;
+        group.add(base);
+
+        // Glowing cyan equator band
+        const band = new THREE.Mesh(
+            new THREE.CylinderGeometry(tileSize * 0.43, tileSize * 0.43, 0.08, 8),
+            new THREE.MeshStandardMaterial({ color: cyan, emissive: cyan, emissiveIntensity: 1.1 })
+        );
+        band.position.set(0, baseH * 0.55, 0);
+        group.add(band);
+
+        // Dome roof
+        const dome = new THREE.Mesh(
+            new THREE.SphereGeometry(tileSize * 0.42, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+            new THREE.MeshStandardMaterial({ color: shell, metalness: 0.5, roughness: 0.3 })
+        );
+        dome.position.set(0, baseH, 0);
+        group.add(dome);
+
+        // Glowing red cross holographic plate
+        const crossMat = new THREE.MeshStandardMaterial({
+            color: red,
+            emissive: red,
+            emissiveIntensity: 1.4,
+            metalness: 0.0,
+            roughness: 0.4,
+        });
+        const bar = tileSize * 0.07;
+        const vertical = new THREE.Mesh(new THREE.BoxGeometry(bar, tileSize * 0.32, bar), crossMat);
+        vertical.position.set(0, baseH + tileSize * 0.42, 0);
+        const horizontal = new THREE.Mesh(new THREE.BoxGeometry(tileSize * 0.32, bar, bar), crossMat);
+        horizontal.position.set(0, baseH + tileSize * 0.45, 0);
+        group.add(vertical, horizontal);
+
+        // Auto-door: glowing slit
+        const door = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.2, baseH * 0.55, 0.02),
+            new THREE.MeshStandardMaterial({
+                color: cyan,
+                emissive: cyan,
+                emissiveIntensity: 0.7,
+            })
+        );
+        door.position.set(0, baseH * 0.3, tileSize * 0.42);
+        group.add(door);
+
+        group.position.set(x, 0, y);
+        return group;
+    }
+
+    /**
+     * Futuristic variant of jail: dark hex prism with magenta laser bars.
+     */
+    createFuturisticCyberPrisonMesh(x, y, tileSize) {
+        const group = new THREE.Group();
+        const dark    = 0x141a28;
+        const laser   = 0xff39c5;
+        const ironish = 0x2a2f3a;
+
+        const baseH = tileSize * 1.05;
+        const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(tileSize * 0.46, tileSize * 0.46, baseH, 6),
+            new THREE.MeshStandardMaterial({
+                color: dark,
+                metalness: 0.7,
+                roughness: 0.4,
+                emissive: 0x0a0c14,
+                emissiveIntensity: 0.25,
+            })
+        );
+        base.position.set(0, baseH / 2, 0);
+        base.castShadow = true;
+        base.receiveShadow = true;
+        group.add(base);
+
+        // Top warning ring
+        const ring = new THREE.Mesh(
+            new THREE.CylinderGeometry(tileSize * 0.47, tileSize * 0.47, 0.06, 6),
+            new THREE.MeshStandardMaterial({ color: laser, emissive: laser, emissiveIntensity: 1.2 })
+        );
+        ring.position.set(0, baseH + 0.03, 0);
+        group.add(ring);
+
+        // Vertical laser bars across one face (the "front")
+        const barMat = new THREE.MeshStandardMaterial({
+            color: laser,
+            emissive: laser,
+            emissiveIntensity: 1.5,
+            metalness: 0.0,
+        });
+        const front = tileSize * 0.42;
+        for (let i = 0; i < 5; i++) {
+            const offset = (i - 2) * (tileSize * 0.08);
+            const vbar = new THREE.Mesh(
+                new THREE.BoxGeometry(tileSize * 0.02, baseH * 0.7, 0.02),
+                barMat
+            );
+            vbar.position.set(offset, baseH * 0.5, front);
+            group.add(vbar);
+        }
+
+        // Steel security door
+        const door = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.22, baseH * 0.4, 0.03),
+            new THREE.MeshStandardMaterial({ color: ironish, metalness: 0.85, roughness: 0.4 })
+        );
+        door.position.set(0, baseH * 0.2, front + 0.005);
+        group.add(door);
+
+        group.position.set(x, 0, y);
+        return group;
+    }
+
+    /**
+     * Futuristic variant of cafe: small neon-lit booth with holographic sign.
+     */
+    createFuturisticNeonBarMesh(x, y, tileSize) {
+        const group = new THREE.Group();
+        const dark     = 0x0c1424;
+        const cyan     = 0x00e5ff;
+        const magenta  = 0xff39c5;
+
+        const baseH = tileSize * 0.7;
+        const base = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.85, baseH, tileSize * 0.85),
+            new THREE.MeshStandardMaterial({
+                color: dark,
+                metalness: 0.7,
+                roughness: 0.25,
+                emissive: 0x080f1a,
+                emissiveIntensity: 0.3,
+            })
+        );
+        base.position.set(0, baseH / 2, 0);
+        base.castShadow = true;
+        base.receiveShadow = true;
+        group.add(base);
+
+        // Cyan top edge band on all 4 sides
+        const bandMat = new THREE.MeshStandardMaterial({
+            color: cyan,
+            emissive: cyan,
+            emissiveIntensity: 1.0,
+        });
+        const w = tileSize * 0.85;
+        const positions = [
+            { x: 0, z:  w / 2, sx: w, sz: 0.02 },
+            { x: 0, z: -w / 2, sx: w, sz: 0.02 },
+            { x:  w / 2, z: 0, sx: 0.02, sz: w },
+            { x: -w / 2, z: 0, sx: 0.02, sz: w },
+        ];
+        for (const p of positions) {
+            const edge = new THREE.Mesh(
+                new THREE.BoxGeometry(p.sx, 0.04, p.sz),
+                bandMat
+            );
+            edge.position.set(p.x, baseH + 0.02, p.z);
+            group.add(edge);
+        }
+
+        // Magenta holo-sign hovering above the front
+        const signPole = new THREE.Mesh(
+            new THREE.BoxGeometry(0.03, tileSize * 0.4, 0.03),
+            new THREE.MeshStandardMaterial({ color: 0x444a55, metalness: 0.6, roughness: 0.4 })
+        );
+        signPole.position.set(0, baseH + tileSize * 0.2, tileSize * 0.43);
+        group.add(signPole);
+
+        const sign = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.32, tileSize * 0.16, 0.02),
+            new THREE.MeshStandardMaterial({
+                color: magenta,
+                emissive: magenta,
+                emissiveIntensity: 1.5,
+                metalness: 0.0,
+                roughness: 0.4,
+            })
+        );
+        sign.position.set(0, baseH + tileSize * 0.45, tileSize * 0.43);
+        group.add(sign);
+
+        // Glowing front door
+        const door = new THREE.Mesh(
+            new THREE.BoxGeometry(tileSize * 0.2, baseH * 0.55, 0.02),
+            new THREE.MeshStandardMaterial({
+                color: cyan,
+                emissive: cyan,
+                emissiveIntensity: 0.8,
+            })
+        );
+        door.position.set(0, baseH * 0.3, tileSize * 0.43);
+        group.add(door);
 
         group.position.set(x, 0, y);
         return group;
@@ -2070,9 +2446,15 @@ class Renderer {
         }
 
         // Per-player destination labels: HOME and JOB tagged with the player's name
-        const isMedievalTheme = window.GAME_THEME === 'medieval';
-        const homeText = isMedievalTheme ? '🏰 COTTAGE' : '🏠 HOME';
-        const jobText  = isMedievalTheme ? '⚒️ KEEP'   : '💼 JOB';
+        let homeText = '🏠 HOME';
+        let jobText  = '💼 JOB';
+        if (window.GAME_THEME === 'medieval') {
+            homeText = '🏰 COTTAGE';
+            jobText  = '⚒️ KEEP';
+        } else if (window.GAME_THEME === 'futuristic') {
+            homeText = '🛏️ HAB-POD';
+            jobText  = '🏢 MEGACORP';
+        }
 
         for (const agent of agentsToRender) {
             if (!agent.isPlayerControlled) continue;

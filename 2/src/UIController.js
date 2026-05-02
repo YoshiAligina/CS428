@@ -580,9 +580,12 @@ class UIController {
         const reachedOffice = agent.arrivedAtJob === true || agent.status === 'ARRIVED';
         const jobCheckbox = reachedOffice ? '☑' : '☐';
         const jobClasses = reachedOffice ? 'completed' : 'pending';
-        const isMedievalThemeForJob = (typeof document !== 'undefined' && document.body && document.body.dataset.theme === 'medieval')
-            || (typeof window !== 'undefined' && window.GAME_THEME === 'medieval');
-        const jobLabel = isMedievalThemeForJob ? 'Report to the keep' : 'Reach office';
+        const themeForJob = (typeof document !== 'undefined' && document.body && document.body.dataset.theme)
+            || (typeof window !== 'undefined' && window.GAME_THEME)
+            || 'classic';
+        let jobLabel = 'Reach office';
+        if (themeForJob === 'medieval')   jobLabel = 'Report to the keep';
+        if (themeForJob === 'futuristic') jobLabel = 'Report to megacorp tower';
         checklist += `<li class="task-item ${jobClasses}">${jobCheckbox} ${jobLabel}</li>`;
 
         checklist += '</ul></div>';
@@ -943,26 +946,39 @@ class UIController {
         const task = (typeof taskOrType === 'string') ? null : taskOrType;
         const taskType = task ? task.type : taskOrType;
 
-        const isMedieval = (typeof document !== 'undefined' && document.body && document.body.dataset.theme === 'medieval')
-            || (typeof window !== 'undefined' && window.GAME_THEME === 'medieval');
+        const theme = (typeof document !== 'undefined' && document.body && document.body.dataset.theme)
+            || (typeof window !== 'undefined' && window.GAME_THEME)
+            || 'classic';
 
         if (taskType === 'HOSPITAL') {
             if (task && task.subtype === 'MEDICINE') {
-                return isMedieval ? '🌿 Fetch herbs from monastery' : '💊 Pick up medicine';
+                if (theme === 'medieval')   return '🌿 Fetch herbs from monastery';
+                if (theme === 'futuristic') return '💉 Pick up nanomeds at med-bay';
+                return '💊 Pick up medicine';
             }
             if (task && task.isHospitalTask) {
-                return isMedieval ? '🌿 Mend wounds at monastery' : '🏥 Visit hospital (injury)';
+                if (theme === 'medieval')   return '🌿 Mend wounds at monastery';
+                if (theme === 'futuristic') return '🩺 Repair injuries at med-bay';
+                return '🏥 Visit hospital (injury)';
             }
-            return isMedieval ? '🌿 Visit monastery' : '🏥 Visit hospital';
+            if (theme === 'medieval')   return '🌿 Visit monastery';
+            if (theme === 'futuristic') return '🩺 Visit med-bay';
+            return '🏥 Visit hospital';
         }
         if (taskType === 'LANDMARK') {
-            return isMedieval ? '📜 Pay respects at the shrine' : '📷 Take photo at landmark';
+            if (theme === 'medieval')   return '📜 Pay respects at the shrine';
+            if (theme === 'futuristic') return '🛰️ Scan the data spire';
+            return '📷 Take photo at landmark';
         }
         if (taskType === 'CAFE') {
-            return isMedieval ? '🍺 Drink ale at the tavern' : '☕ Grab coffee at cafe';
+            if (theme === 'medieval')   return '🍺 Drink ale at the tavern';
+            if (theme === 'futuristic') return '⚡ Synth-coffee at the neon bar';
+            return '☕ Grab coffee at cafe';
         }
         if (taskType === 'JAIL') {
-            return isMedieval ? '⛓️ Serve sentence in the dungeon' : '⚖️ Serve jail time';
+            if (theme === 'medieval')   return '⛓️ Serve sentence in the dungeon';
+            if (theme === 'futuristic') return '🔒 Detention block sentence';
+            return '⚖️ Serve jail time';
         }
 
         const fallbacks = {
@@ -983,14 +999,19 @@ class UIController {
         const playerSucceeded = player && player.status === 'ARRIVED';
         const playerFailed = player && player.status === 'FAILED';
 
-        const isMedieval = (typeof document !== 'undefined' && document.body && document.body.dataset.theme === 'medieval')
-            || (typeof window !== 'undefined' && window.GAME_THEME === 'medieval');
+        const theme = (typeof document !== 'undefined' && document.body && document.body.dataset.theme)
+            || (typeof window !== 'undefined' && window.GAME_THEME)
+            || 'classic';
 
         let resultTitle;
         if (playerSucceeded) {
             resultTitle = 'You Won!';
+        } else if (theme === 'medieval') {
+            resultTitle = "You've Been Executed";
+        } else if (theme === 'futuristic') {
+            resultTitle = "You've Been Decommissioned";
         } else {
-            resultTitle = isMedieval ? "You've Been Executed" : "You're Fired!";
+            resultTitle = "You're Fired!";
         }
 
         // Calculate average congestion
