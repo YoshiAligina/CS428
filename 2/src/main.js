@@ -641,6 +641,18 @@ class Game {
             return true;
         }
 
+        // Fungible task tiles: any CAFE/HOSPITAL/JAIL tile is valid
+        // when the player has an uncompleted task of that type.
+        const fungibleTypeForTask = { 'CAFE': 'CAFE', 'HOSPITAL': 'HOSPITAL', 'JAIL': 'JAIL' };
+        if (Array.isArray(player.tasksQueue)) {
+            for (const task of player.tasksQueue) {
+                if (task.completed) continue;
+                if (fungibleTypeForTask[task.type] === tile.type) {
+                    return true;
+                }
+            }
+        }
+
         const destinationKeys = new Set();
 
         if (player.homeLocation) {

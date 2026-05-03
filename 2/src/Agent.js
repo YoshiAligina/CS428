@@ -394,15 +394,28 @@ class Agent {
         let arrived = false;
         let taskCompleted = false;
 
+        // Tile-type substitution: tasks of these types complete on ANY matching tile,
+        // not only the exact one originally chosen.
+        const fungibleTaskTypes = {
+            [Agent.TASK_TYPE.CAFE]:     Tile.TYPES.CAFE,
+            [Agent.TASK_TYPE.HOSPITAL]: Tile.TYPES.HOSPITAL,
+            [Agent.TASK_TYPE.JAIL]:     Tile.TYPES.JAIL,
+        };
+
         // Check for task completion
         for (const task of this.tasksQueue) {
-            if (!task.completed &&
-                this.currentLocation.x === task.location.x &&
-                this.currentLocation.y === task.location.y) {
+            if (task.completed) continue;
 
+            const exactMatch = this.currentLocation.x === task.location.x &&
+                               this.currentLocation.y === task.location.y;
+
+            const fungibleType = fungibleTaskTypes[task.type];
+            const typeMatch = fungibleType && currentTile && currentTile.type === fungibleType;
+
+            if (exactMatch || typeMatch) {
                 task.completed = true;
                 this.completedTasks.push(task);
-                console.log(`Agent ${this.id} completed task: ${task.type} at (${task.location.x}, ${task.location.y})`);
+                console.log(`Agent ${this.id} completed task: ${task.type} at (${this.currentLocation.x}, ${this.currentLocation.y})`);
                 taskCompleted = true;
                 arrived = true;
                 break;  // Complete one task at a time
