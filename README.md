@@ -33,7 +33,7 @@ The simulation runs multiple games and reports completion rate + difficulty reco
 
 1. Open PowerShell in the project folder.
 2. Run:
-   - `cd C:\Users\yoshi\Desktop\yoshiaiplaying\CS428\2`
+   - `cd C:\Users\......\CS428\2`
    - `node scripts\simulateGames.js`
 3. Expected output includes:
    - Number of games simulated
